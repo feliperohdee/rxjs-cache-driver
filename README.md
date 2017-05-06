@@ -31,7 +31,7 @@ It is pluggable with your own custom logic via 'operations' params.
 			}
 		});
 
-		const fallback = Observable.of('value'); // fallback will be subscribed if key doesn't exists or is expired, this value will be attached to this key with provided ttl
+		const fallback = args => Observable.of('value'); // fallback will be subscribed if key doesn't exists or is expired, this value will be attached to this key with provided ttl
 
 		cacheDriver.get({
 			namespace,
