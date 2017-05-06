@@ -23,7 +23,7 @@ describe('index.js', () => {
 			.returns(createdAt);
 
 		fallbackStub = sinon.stub();
-		fallback = Observable.of('fresh')
+		fallback = () => Observable.of('fresh')
 			.do(() => fallbackStub());
 
 		cacheDriver = new CacheDriver({
@@ -123,13 +123,13 @@ describe('index.js', () => {
 				});
 		});
 
-		it('should throw if fallback isn\'t an Observable', done => {
+		it('should throw if fallback isn\'t a function', done => {
 			cacheDriver.get({
 					namespace,
 					key: 'key'
-				}, () => null)
+				}, null)
 				.subscribe(null, err => {
-					expect(err.message).to.equal('Fallback must be instance of Observable.');
+					expect(err.message).to.equal('Fallback must be a function which returns an Observable.');
 
 					done();
 				});
