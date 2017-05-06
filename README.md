@@ -1,6 +1,6 @@
 [![CircleCI](https://circleci.com/gh/feliperohdee/smallorange-rxjs-cache-driver.svg?style=svg)](https://circleci.com/gh/feliperohdee/smallorange-rxjs-cache-driver)
 
-# Small Orange Cache Driver
+# Small Orange RXJS Cache Driver
 
 Simple pluggable reactive cache driver powered and RxJS, it uses cache first strategy. Once expired, it returns cached value and feed cache in background to deliver fresh result at next request.
 It is pluggable with your own custom logic via 'operations' params.
