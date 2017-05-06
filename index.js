@@ -43,7 +43,7 @@ module.exports = class CacheDriver {
 			return Observable.throw(new Error('No key provided.'));
 		}
 
-		if (!(fallback instanceof Observable)) {
+		if (!fallback.subscribe) {
 			return Observable.throw(new Error('Fallback must be instance of Observable.'));
 		}
 
