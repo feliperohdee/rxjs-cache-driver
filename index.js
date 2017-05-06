@@ -47,10 +47,6 @@ module.exports = class CacheDriver {
 			return Observable.throw(new Error('Fallback must be a function which returns an Observable.'));
 		}
 
-		const fallbackReplay = fallback(args)
-			.publishLast()
-			.refCount();
-
 		const _set = value => this._set({
 			namespace,
 			key,
@@ -68,7 +64,7 @@ module.exports = class CacheDriver {
 				} = response;
 
 				if (!value) {
-					return fallbackReplay
+					return fallback(args)
 						.do(response => _set(response)
 							.publish()
 							.connect());
@@ -78,7 +74,7 @@ module.exports = class CacheDriver {
 
 				// just refresh to next request in background
 				if (expired) {
-					fallbackReplay
+					fallback(args)
 						.mergeMap(_set)
 						.publish()
 						.connect();
@@ -91,7 +87,7 @@ module.exports = class CacheDriver {
 					this.options.onError(err);
 				}
 
-				return fallbackReplay;
+				return fallback(args);
 			});
 	}
 
