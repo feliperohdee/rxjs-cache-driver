@@ -1,6 +1,6 @@
 {
   "name": "smallorange-rxjs-cache-driver",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Simple pluggable reactive cache driver powered by RxJS.",
   "main": "index.js",
   "scripts": {
