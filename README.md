@@ -2,7 +2,7 @@
 
 # Small Orange Cache Driver
 
-Simple reactive cache driver powered and RxJS, it uses cache first strategy. Once expired, it returns cached value and feed cache in background to deliver fresh result at next request.
+Simple pluggable reactive cache driver powered and RxJS, it uses cache first strategy. Once expired, it returns cached value and feed cache in background to deliver fresh result at next request.
 It is pluggable with your own custom logic via 'operations' params.
 
 ## Sample (with DynamoDB)

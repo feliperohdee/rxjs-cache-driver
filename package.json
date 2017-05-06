@@ -1,7 +1,7 @@
 {
   "name": "smallorange-rxjs-cache-driver",
   "version": "1.0.0",
-  "description": "Simple reactive cache driver powered by RxJS.",
+  "description": "Simple pluggable reactive cache driver powered by RxJS.",
   "main": "index.js",
   "scripts": {
     "test": "NODE_ENV=test ./node_modules/.bin/_mocha spec --recursive --watch --timeout 5000",
