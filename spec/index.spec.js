@@ -152,19 +152,13 @@ describe('index.js', () => {
 		});
 
 		describe('expired ttr', () => {
-			beforeEach(() => {
-				cacheDriver.options.ttr = 0;
-			});
-
-			afterEach(() => {
-				cacheDriver.options.ttr = 7200;
-			});
-
 			it('should get cached value and refresh in background', done => {
 				cacheDriver.get({
 						namespace,
 						key: 'existentKey'
-					}, fallback)
+					}, fallback, {
+						ttr: 0
+					})
 					.do(response => {
 						expect(response).to.equal('cached');
 						expect(cacheDriver.options.set).to.have.been.calledWith('spec', 'existentKey', JSON.stringify({

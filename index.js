@@ -25,11 +25,13 @@ module.exports = class CacheDriver {
 		}, options);
 	}
 
-	get(args, fallback) {
+	get(args, fallback, options) {
 		const {
 			namespace,
 			key
 		} = args;
+
+		options = Object.assign({}, this.options, options);
 
 		if (!namespace) {
 			return Observable.throw(new Error('No namespace provided.'));
@@ -66,7 +68,7 @@ module.exports = class CacheDriver {
 							.connect());
 				}
 
-				const expired = Date.now() - createdAt >= (this.options.ttr * 1000) ? true : false;
+				const expired = Date.now() - createdAt >= (options.ttr * 1000) ? true : false;
 
 				// just refresh to next request in background
 				if (expired) {

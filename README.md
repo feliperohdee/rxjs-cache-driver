@@ -33,8 +33,10 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 
 		cacheDriver.get({
 			namespace,
-			key: 'someKey'
-		}, fallback)
+			key: 'inexistentKey'
+		}, fallback, {
+			ttr: 100
+		})
 		.subscribe(response => {
 			console.log(response); // will print "value" from fallback
 		});
@@ -42,7 +44,9 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 		cacheDriver.get({
 			namespace,
 			key: 'someKey'
-		}, fallback)
+		}, fallback, {
+			ttr: 100
+		})
 		.subscribe(response => {
 			console.log(response); // will print "value" from cache
 		});
