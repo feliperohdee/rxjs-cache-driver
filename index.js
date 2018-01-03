@@ -4,24 +4,20 @@ const {
 
 module.exports = class CacheDriver {
 	constructor(options = {}) {
-		if (!options.operations) {
-			throw new Error('operations are missing.');
-		}
-
-		if (!options.operations.get) {
-			throw new Error('operations.get is missing.');
+		if (!options.get) {
+			throw new Error('get is missing.');
 		}
 		
-		if (!options.operations.set) {
-			throw new Error('operations.set is missing.');
+		if (!options.set) {
+			throw new Error('set is missing.');
 		}
 		
-		if (!options.operations.del) {
-			throw new Error('operations.del is missing.');
+		if (!options.del) {
+			throw new Error('del is missing.');
 		}
 
-		if (!options.operations.clear) {
-			throw new Error('operations.clear is missing.');
+		if (!options.clear) {
+			throw new Error('clear is missing.');
 		}
 
 		this.options = Object.assign({
@@ -81,13 +77,6 @@ module.exports = class CacheDriver {
 				}
 
 				return Observable.of(value);
-			})
-			.catch(err => {
-				if (typeof this.options.onError === 'function') {
-					this.options.onError(err);
-				}
-
-				return fallback(args);
 			});
 	}
 
@@ -105,20 +94,13 @@ module.exports = class CacheDriver {
 			return Observable.throw(new Error('No key provided.'));
 		}
 
-		return this.options.operations.get(namespace, key)
+		return this.options.get(namespace, key)
 			.mergeMap(response => {
 				if (!response) {
 					return Observable.of({});
 				}
 
 				return Observable.of(JSON.parse(response));
-			})
-			.catch(err => {
-				if (typeof this.options.onError === 'function') {
-					this.options.onError(err);
-				}
-
-				return Observable.of({});
 			})
 			.defaultIfEmpty({});
 	}
@@ -142,19 +124,12 @@ module.exports = class CacheDriver {
 			return Observable.empty();
 		}
 
-		return this.options.operations.set(namespace, key, JSON.stringify({
+		return this.options.set(namespace, key, JSON.stringify({
 				namespace,
 				key,
 				value,
 				createdAt: Date.now()
-			}))
-			.catch(err => {
-				if (typeof this.options.onError === 'function') {
-					this.options.onError(err);
-				}
-
-				return Observable.empty();
-			});
+			}));
 	}
 
 	del(args) {
@@ -171,7 +146,7 @@ module.exports = class CacheDriver {
 			return Observable.throw(new Error('No key provided.'));
 		}
 
-		return this.options.operations.del(namespace, key);
+		return this.options.del(namespace, key);
 	}
 
 	markToRefresh(args) {
@@ -188,13 +163,13 @@ module.exports = class CacheDriver {
 			return Observable.throw(new Error('No key provided.'));
 		}
 
-		return this.options.operations.get(namespace, key)
+		return this.options.get(namespace, key)
 			.mergeMap(response => {
 				const value = JSON.parse(response);
 
 				value.createdAt = 0;
 
-				return this.options.operations.set(namespace, key, JSON.stringify(value));
+				return this.options.set(namespace, key, JSON.stringify(value));
 			});
 
 	}
@@ -208,6 +183,6 @@ module.exports = class CacheDriver {
 			return Observable.throw(new Error('No namespace provided.'));
 		}
 
-		return this.options.operations.clear(namespace);
+		return this.options.clear(namespace);
 	}
 }

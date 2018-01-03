@@ -15,40 +15,43 @@ const namespace = 'spec';
 const createdAt = Date.now();
 
 describe('index.js', () => {
-	let fallbackStub;
 	let fallback;
 
 	beforeEach(() => {
 		sinon.stub(Date, 'now')
 			.returns(createdAt);
 
-		fallbackStub = sinon.stub();
-		fallback = () => Observable.of('fresh')
-			.do(() => fallbackStub());
+		fallback = sinon.stub()
+			.callsFake(() => Observable.of('fresh'));
 
 		cacheDriver = new CacheDriver({
-			onError: sinon.stub(),
-			operations: {
-				get: sinon.spy((namespace, key) => key === 'existentKey' ? Observable.of({
-						namespace,
-						key,
-						value: 'cached',
-						createdAt
-					})
-					.map(JSON.stringify) : Observable.empty()),
-				set: sinon.spy((namespace, key, value) => Observable.of({
-					namespace,
-					key,
-					value
-				})),
-				del: sinon.spy((namespace, key) => Observable.of({
-					namespace,
-					key
-				})),
-				clear: sinon.spy(namespace => Observable.of({
-					namespace
-				}))
-			}
+			get: sinon.spy((namespace, key) => {
+				if (key === 'existentKey') {
+					return Observable.of({
+							namespace,
+							key,
+							value: 'cached',
+							createdAt
+						})
+						.map(JSON.stringify);
+				} else if (key === 'nullKey') {
+					return Observable.of(null);
+				}
+
+				return Observable.empty();
+			}),
+			set: sinon.spy((namespace, key, value) => Observable.of({
+				namespace,
+				key,
+				value
+			})),
+			del: sinon.spy((namespace, key) => Observable.of({
+				namespace,
+				key
+			})),
+			clear: sinon.spy(namespace => Observable.of({
+				namespace
+			}))
 		});
 	});
 
@@ -57,48 +60,36 @@ describe('index.js', () => {
 	});
 
 	describe('constructor', () => {
-		it('should throw if no operations', () => {
-			expect(() => new CacheDriver()).to.throw('operations are missing.');
+		it('should throw if no get', () => {
+			expect(() => new CacheDriver({
+				set: () => null,
+				del: () => null,
+				clear: () => null
+			})).to.throw('get is missing.');
 		});
 
-		it('should throw if no operations.get', () => {
+		it('should throw if no set', () => {
 			expect(() => new CacheDriver({
-				operations: {
-					set: () => null,
-					del: () => null,
-					clear: () => null
-				}
-			})).to.throw('operations.get is missing.');
+				get: () => null,
+				del: () => null,
+				clear: () => null
+			})).to.throw('set is missing.');
 		});
 
-		it('should throw if no operations.set', () => {
+		it('should throw if no del', () => {
 			expect(() => new CacheDriver({
-				operations: {
-					get: () => null,
-					del: () => null,
-					clear: () => null
-				}
-			})).to.throw('operations.set is missing.');
+				get: () => null,
+				set: () => null,
+				clear: () => null
+			})).to.throw('del is missing.');
 		});
 
-		it('should throw if no operations.del', () => {
+		it('should throw if no clear', () => {
 			expect(() => new CacheDriver({
-				operations: {
-					get: () => null,
-					set: () => null,
-					clear: () => null
-				}
-			})).to.throw('operations.del is missing.');
-		});
-
-		it('should throw if no operations.clear', () => {
-			expect(() => new CacheDriver({
-				operations: {
-					get: () => null,
-					set: () => null,
-					del: () => null
-				}
-			})).to.throw('operations.clear is missing.');
+				get: () => null,
+				set: () => null,
+				del: () => null
+			})).to.throw('clear is missing.');
 		});
 	});
 
@@ -143,8 +134,8 @@ describe('index.js', () => {
 				.subscribe(response => {
 					expect(response).to.equal('fresh');
 
-					expect(fallbackStub).to.have.been.called;
-					expect(cacheDriver.options.operations.set).to.have.been.called;
+					expect(fallback).to.have.been.called;
+					expect(cacheDriver.options.set).to.have.been.called;
 				}, null, done);
 		});
 
@@ -169,14 +160,14 @@ describe('index.js', () => {
 				cacheDriver.options.ttr = 7200;
 			});
 
-			it('should get cached value refresh in background', done => {
+			it('should get cached value and refresh in background', done => {
 				cacheDriver.get({
 						namespace,
 						key: 'existentKey'
 					}, fallback)
 					.do(response => {
 						expect(response).to.equal('cached');
-						expect(cacheDriver.options.operations.set).to.have.been.calledWith('spec', 'existentKey', JSON.stringify({
+						expect(cacheDriver.options.set).to.have.been.calledWith('spec', 'existentKey', JSON.stringify({
 							namespace,
 							key: 'existentKey',
 							value: 'fresh',
@@ -188,6 +179,7 @@ describe('index.js', () => {
 						key: 'key'
 					}, fallback))
 					.subscribe(response => {
+						expect(fallback).to.have.been.called;
 						expect(response).to.equal('fresh');
 					}, null, done);
 			});
@@ -195,20 +187,18 @@ describe('index.js', () => {
 
 		describe('_get error', () => {
 			beforeEach(() => {
-				cacheDriver.options.operations.get = () => Observable.throw('ops...');
+				cacheDriver.options.get = () => Observable.throw('ops...');
 			});
 
-			it('should run fallback and refresh in background', done => {
+			it('should throw', done => {
 				cacheDriver.get({
 						namespace,
 						key: 'key'
 					}, fallback)
-					.subscribe(response => {
-						expect(response).to.equal('fresh');
-						expect(fallbackStub).to.have.been.called;
-						expect(cacheDriver.options.onError).to.have.been.called;
-						expect(cacheDriver.options.operations.set).to.have.been.called;
-					}, null, done);
+					.subscribe(null, err => {
+						expect(err).to.equal('ops...');
+						done();
+					});
 			});
 		});
 
@@ -219,19 +209,18 @@ describe('index.js', () => {
 				}
 
 				sinon.stub(Date, 'now')
-					.throws('non catched error');
+					.throws(new Error('non catched error'));
 			});
 
-			it('should run fallback and not set cache', done => {
+			it('should throw', done => {
 				cacheDriver.get({
 						namespace,
-						key: 'key'
+						key: 'existentKey'
 					}, fallback)
-					.subscribe(response => {
-						expect(response).to.equal('fresh');
-
-						expect(fallbackStub).to.have.been.called;
-					}, null, done);
+					.subscribe(null, err => {
+						expect(err.message).to.equal('non catched error');
+						done();
+					});
 			});
 		});
 	});
@@ -258,36 +247,43 @@ describe('index.js', () => {
 		});
 
 		describe('no value', () => {
-			const callback = sinon.stub();
-
 			it('should return empty', done => {
 				cacheDriver._get({
 						namespace,
 						key: 'inexistentKey'
 					})
-					.subscribe(callback, null, () => {
-						expect(callback).to.have.been.called;
-						expect(callback).to.have.been.calledWith({});
+					.subscribe(response => {
+						expect(response).to.deep.equal({});
+					}, null, done);
+			});
+		});
 
-						done();
-					});
+		describe('null value', () => {
+			it('should return empty', done => {
+				cacheDriver._get({
+						namespace,
+						key: 'nullKey'
+					})
+					.subscribe(response => {
+						expect(response).to.deep.equal({});
+					}, null, done);
 			});
 		});
 
 		describe('on error', () => {
 			beforeEach(() => {
-				cacheDriver.options.operations.get = () => Observable.throw('ops...');
+				cacheDriver.options.get = () => Observable.throw('ops...');
 			});
 
-			it('should return empty', done => {
+			it('should throw', done => {
 				cacheDriver._get({
 						namespace,
 						key: 'key'
 					})
-					.subscribe(response => {
-						expect(response).to.deep.equal({});
-						expect(cacheDriver.options.onError).to.have.been.called;
-					}, null, done);
+					.subscribe(null, err => {
+						expect(err).to.equal('ops...');
+						done();
+					});
 			});
 		});
 	});
@@ -313,7 +309,7 @@ describe('index.js', () => {
 				});
 		});
 
-		it('should call operations.set', done => {
+		it('should call set', done => {
 			cacheDriver._set({
 					namespace,
 					key: 'key',
@@ -321,7 +317,7 @@ describe('index.js', () => {
 					createdAt
 				})
 				.subscribe(() => {
-					expect(cacheDriver.options.operations.set).to.have.been.calledWith('spec', 'key', JSON.stringify({
+					expect(cacheDriver.options.set).to.have.been.calledWith('spec', 'key', JSON.stringify({
 						namespace,
 						key: 'key',
 						value: 'fresh',
@@ -330,34 +326,29 @@ describe('index.js', () => {
 				}, null, done);
 		});
 
-		it('should not call operations.set if no value', done => {
+		it('should not call set if no value', done => {
 			cacheDriver._set({
 					namespace,
 					key: 'key'
 				})
 				.subscribe(() => {
-					expect(cacheDriver.options.operations.set).not.to.have.been.called;
-					expect(cacheDriver.options.onError).not.to.have.been.called;
+					expect(cacheDriver.options.set).not.to.have.been.called;
 				}, null, done);
 		});
 
 		describe('on error', () => {
 			beforeEach(() => {
-				cacheDriver.options.operations.set = () => Observable.throw('ops...');
+				cacheDriver.options.set = () => Observable.throw('ops...');
 			});
 
-			it('should return nothing', done => {
-				const values = [];
-
+			it('should throw', done => {
 				cacheDriver._set({
 						namespace,
 						key: 'key',
 						value: 'value'
 					})
-					.subscribe(values.push, null, () => {
-						expect(values).to.deep.equal([]);
-						expect(cacheDriver.options.onError).to.have.been.called;
-
+					.subscribe(null, err => {
+						expect(err).to.equal('ops...');
 						done();
 					});
 			});
@@ -385,13 +376,13 @@ describe('index.js', () => {
 				});
 		});
 
-		it('should call operations.del', done => {
+		it('should call del', done => {
 			cacheDriver.del({
 					namespace,
 					key: 'key'
 				})
 				.subscribe(() => {
-					expect(cacheDriver.options.operations.del).to.have.been.calledWith('spec', 'key');
+					expect(cacheDriver.options.del).to.have.been.calledWith('spec', 'key');
 				}, null, done);
 		});
 	});
@@ -406,13 +397,24 @@ describe('index.js', () => {
 				});
 		});
 
-		it('should call operations.set', done => {
+		it('should throw if no key', done => {
+			cacheDriver.markToRefresh({
+					namespace
+				})
+				.subscribe(null, err => {
+					expect(err.message).to.equal('No key provided.');
+
+					done();
+				});
+		});
+
+		it('should call set', done => {
 			cacheDriver.markToRefresh({
 					namespace,
 					key: 'existentKey'
 				})
 				.subscribe(response => {
-					expect(cacheDriver.options.operations.set).to.have.been.calledWith(
+					expect(cacheDriver.options.set).to.have.been.calledWith(
 						namespace,
 						'existentKey',
 						JSON.stringify({
@@ -436,12 +438,12 @@ describe('index.js', () => {
 				});
 		});
 
-		it('should call operations.clear', done => {
+		it('should call clear', done => {
 			cacheDriver.clear({
 					namespace
 				})
 				.subscribe(response => {
-					expect(cacheDriver.options.operations.clear).to.have.been.calledWith(namespace);
+					expect(cacheDriver.options.clear).to.have.been.calledWith(namespace);
 				}, null, done);
 		});
 	});
