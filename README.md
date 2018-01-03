@@ -3,7 +3,7 @@
 # Small Orange RXJS Cache Driver
 
 Simple pluggable reactive cache driver powered and RxJS, it uses cache first strategy. Once expired, it returns cached value and feed cache in background to deliver fresh result at next request.
-It is pluggable with your own custom logic via 'operations' params.
+It is pluggable with your custom logic via get, set, del, and clear operations.
 
 ## Sample (with DynamoDB)
 		
@@ -22,13 +22,11 @@ It is pluggable with your own custom logic via 'operations' params.
 		const cacheDriver = new CacheDriver({
 			logError: console.error,
 			ttl: 7200 * 1000,
-			operations: {
-				set: (namespace, key, value) => dynamodb.set({namespace, key, value}),
-				get: (namespace, key) => dynamodb.get({namespace, key}),
-				del: (namespace, key) => dynamodb.del({namespace, key}),
-				clear: (namespace) => dynamodb.fetch({namespace})
-					.mergeMap(::dynamodb.del)
-			}
+			set: (namespace, key, value) => dynamodb.set({namespace, key, value}),
+			get: (namespace, key) => dynamodb.get({namespace, key}),
+			del: (namespace, key) => dynamodb.del({namespace, key}),
+			clear: (namespace) => dynamodb.fetch({namespace})
+				.mergeMap(::dynamodb.del)
 		});
 
 		const fallback = args => Observable.of('value'); // fallback will be subscribed if key doesn't exists or is expired, this value will be attached to this key with provided ttl
