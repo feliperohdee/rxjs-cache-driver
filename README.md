@@ -21,7 +21,7 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 		const namespace = 'someNamespace';
 		const cacheDriver = new CacheDriver({
 			logError: console.error,
-			ttl: 7200 * 1000,
+			ttr: 7200 * 1000, // default time to refresh
 			set: (namespace, key, value) => dynamodb.set({namespace, key, value}),
 			get: (namespace, key) => dynamodb.get({namespace, key}),
 			del: (namespace, key) => dynamodb.del({namespace, key}),
@@ -29,13 +29,13 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 				.mergeMap(::dynamodb.del)
 		});
 
-		const fallback = args => Observable.of('value'); // fallback will be subscribed if key doesn't exists or is expired, this value will be attached to this key with provided ttl
+		const fallback = args => Observable.of('value'); // fallback will be subscribed if key doesn't exists or is expired, this value will be attached to this key with provided ttr
 
 		cacheDriver.get({
 			namespace,
 			key: 'inexistentKey'
 		}, fallback, {
-			ttr: 100
+			ttr: 100 // custom ttr
 		})
 		.subscribe(response => {
 			console.log(response); // will print "value" from fallback
