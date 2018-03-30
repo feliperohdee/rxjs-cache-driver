@@ -20,7 +20,6 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 
 		const namespace = 'someNamespace';
 		const cacheDriver = new CacheDriver({
-			logError: console.error,
 			ttr: 7200 * 1000, // default time to refresh
 			set: (namespace, key, value) => dynamodb.set({namespace, key, value}),
 			get: (namespace, key) => dynamodb.get({namespace, key}),
