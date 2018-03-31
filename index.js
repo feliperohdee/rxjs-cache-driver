@@ -27,6 +27,7 @@ module.exports = class CacheDriver {
 
 	get(args, fallback, options) {
 		const {
+			forceRefresh,
 			namespace,
 			key
 		} = args;
@@ -51,6 +52,17 @@ module.exports = class CacheDriver {
 			value
 		});
 
+		const fallbackAndSet = args => fallback(args)
+			.do(response => {
+				return _set(response)
+					.publish()
+					.connect()
+			});
+
+		if(forceRefresh) {
+			return fallbackAndSet(args);
+		}
+
 		return this._get({
 				namespace,
 				key
@@ -62,18 +74,14 @@ module.exports = class CacheDriver {
 				} = response;
 
 				if (!value) {
-					return fallback(args)
-						.do(response => _set(response)
-							.publish()
-							.connect());
+					return fallbackAndSet(args);
 				}
 
 				const expired = Date.now() - createdAt >= (options.ttr * 1000) ? true : false;
 
 				// just refresh to next request in background
 				if (expired) {
-					fallback(args)
-						.mergeMap(_set)
+					fallbackAndSet(args)
 						.publish()
 						.connect();
 				}

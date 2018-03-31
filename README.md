@@ -50,6 +50,17 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 			console.log(response); // will print "value" from cache
 		});
 
+		cacheDriver.get({
+			namespace,
+			key: 'someKey',
+			forceRefresh: true
+		}, fallback, {
+			ttr: 100
+		})
+		.subscribe(response => {
+			console.log(response); // will print "value" from fallback and refresh cache with it
+		});
+
 		// IF EXPIRED
 
 		cacheDriver.get({

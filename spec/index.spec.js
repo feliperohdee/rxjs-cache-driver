@@ -133,7 +133,6 @@ describe('index.js', () => {
 				}, fallback)
 				.subscribe(response => {
 					expect(response).to.equal('fresh');
-
 					expect(fallback).to.have.been.called;
 					expect(cacheDriver.options.set).to.have.been.called;
 				}, null, done);
@@ -149,6 +148,26 @@ describe('index.js', () => {
 						expect(response).to.equal('cached');
 					}, null, done);
 			});
+
+			describe('forceRefresh', () => {
+				it('should get fresh value and refresh', done => {
+					cacheDriver.get({
+						namespace,
+						key: 'existentKey',
+						forceRefresh: true
+					}, fallback)
+					.subscribe(response => {
+						expect(response).to.equal('fresh');
+						expect(fallback).to.have.been.called;
+						expect(cacheDriver.options.set).to.have.been.calledWith('spec', 'existentKey', JSON.stringify({
+							namespace,
+							key: 'existentKey',
+							value: 'fresh',
+							createdAt
+						}));
+					}, null, done);
+				});
+			});
 		});
 
 		describe('expired ttr', () => {
@@ -159,22 +178,15 @@ describe('index.js', () => {
 					}, fallback, {
 						ttr: 0
 					})
-					.do(response => {
+					.subscribe(response => {
 						expect(response).to.equal('cached');
+						expect(fallback).to.have.been.called;
 						expect(cacheDriver.options.set).to.have.been.calledWith('spec', 'existentKey', JSON.stringify({
 							namespace,
 							key: 'existentKey',
 							value: 'fresh',
 							createdAt
 						}));
-					})
-					.mergeMap(() => cacheDriver.get({
-						namespace,
-						key: 'key'
-					}, fallback))
-					.subscribe(response => {
-						expect(fallback).to.have.been.called;
-						expect(response).to.equal('fresh');
 					}, null, done);
 			});
 		});
