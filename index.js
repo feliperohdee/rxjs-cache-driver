@@ -27,7 +27,6 @@ module.exports = class CacheDriver {
 
 	get(args, fallback, options) {
 		const {
-			forceRefresh,
 			namespace,
 			key
 		} = args;
@@ -59,7 +58,7 @@ module.exports = class CacheDriver {
 					.connect()
 			});
 
-		if(forceRefresh) {
+		if(options.forceRefresh) {
 			return fallbackAndSet(args);
 		}
 

@@ -153,9 +153,10 @@ describe('index.js', () => {
 				it('should get fresh value and refresh', done => {
 					cacheDriver.get({
 						namespace,
-						key: 'existentKey',
+						key: 'existentKey'
+					}, fallback, {
 						forceRefresh: true
-					}, fallback)
+					})
 					.subscribe(response => {
 						expect(response).to.equal('fresh');
 						expect(fallback).to.have.been.called;
