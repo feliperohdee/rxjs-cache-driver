@@ -29,7 +29,7 @@ describe('index.js', () => {
                 namespace,
                 id
             }) => {
-                if (id === 'existentid') {
+                if (id === 'existentId') {
                     return Observable.of({
                         namespace,
                         id,
@@ -140,7 +140,7 @@ describe('index.js', () => {
         it('should run fallback and set cache in background if no cached value', done => {
             cacheDriver.get({
                     namespace,
-                    id: 'inexistentid'
+                    id: 'inexistentId'
                 }, fallback)
                 .subscribe(response => {
                     expect(response).to.equal('fresh');
@@ -153,7 +153,7 @@ describe('index.js', () => {
             it('should get cached value', done => {
                 cacheDriver.get({
                         namespace,
-                        id: 'existentid'
+                        id: 'existentId'
                     }, fallback)
                     .subscribe(response => {
                         expect(response).to.equal('cached');
@@ -164,7 +164,7 @@ describe('index.js', () => {
                 it('should get fresh value and refresh', done => {
                     cacheDriver.get({
                             namespace,
-                            id: 'existentid'
+                            id: 'existentId'
                         }, fallback, {
                             forceRefresh: true
                         })
@@ -173,7 +173,7 @@ describe('index.js', () => {
                             expect(fallback).to.have.been.called;
                             expect(cacheDriver.options.set).to.have.been.calledWith({
                                 namespace,
-                                id: 'existentid',
+                                id: 'existentId',
                                 value: 'fresh',
                                 createdAt
                             });
@@ -186,7 +186,7 @@ describe('index.js', () => {
             it('should get cached value and refresh in background', done => {
                 cacheDriver.get({
                         namespace,
-                        id: 'existentid'
+                        id: 'existentId'
                     }, fallback, {
                         ttr: 0
                     })
@@ -195,7 +195,7 @@ describe('index.js', () => {
                         expect(fallback).to.have.been.called;
                         expect(cacheDriver.options.set).to.have.been.calledWith({
                             namespace,
-                            id: 'existentid',
+                            id: 'existentId',
                             value: 'fresh',
                             createdAt
                         });
@@ -233,7 +233,7 @@ describe('index.js', () => {
             it('should throw', done => {
                 cacheDriver.get({
                         namespace,
-                        id: 'existentid'
+                        id: 'existentId'
                     }, fallback)
                     .subscribe(null, err => {
                         expect(err.message).to.equal('non catched error');
@@ -267,12 +267,12 @@ describe('index.js', () => {
         it('should return', done => {
             cacheDriver._get({
                     namespace,
-                    id: 'existentid'
+                    id: 'existentId'
                 })
                 .subscribe(response => {
                     expect(response).to.deep.equal({
                         namespace: 'spec',
-                        id: 'existentid',
+                        id: 'existentId',
                         value: 'cached',
                         createdAt: response.createdAt
                     });
@@ -282,12 +282,12 @@ describe('index.js', () => {
         it('should return', done => {
             cacheDriver._get({
                     namespace,
-                    id: 'existentid'
+                    id: 'existentId'
                 })
                 .subscribe(response => {
                     expect(response).to.deep.equal({
                         namespace: 'spec',
-                        id: 'existentid',
+                        id: 'existentId',
                         value: 'cached',
                         createdAt: response.createdAt
                     });
@@ -298,7 +298,7 @@ describe('index.js', () => {
             it('should return empty', done => {
                 cacheDriver._get({
                         namespace,
-                        id: 'inexistentid'
+                        id: 'inexistentId'
                     })
                     .subscribe(response => {
                         expect(response).to.deep.equal({});
@@ -462,12 +462,12 @@ describe('index.js', () => {
         it('should call set', done => {
             cacheDriver.markToRefresh({
                     namespace,
-                    id: 'existentid'
+                    id: 'existentId'
                 })
                 .subscribe(response => {
                     expect(cacheDriver.options.set).to.have.been.calledWith({
                         namespace,
-                        id: 'existentid',
+                        id: 'existentId',
                         value: 'cached',
                         createdAt: 0
                     });
