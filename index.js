@@ -109,7 +109,7 @@ module.exports = class CacheDriver {
 					return Observable.of({});
 				}
 
-				return Observable.of(JSON.parse(response));
+				return Observable.of(typeof response === 'string' ? JSON.parse(response) : response);
 			})
 			.defaultIfEmpty({});
 	}
