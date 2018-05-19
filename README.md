@@ -21,18 +21,18 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 		const namespace = 'someNamespace';
 		const cacheDriver = new CacheDriver({
 			ttr: 7200 * 1000, // default time to refresh
-			set: (namespace, key, value) => dynamodb.set({namespace, key, value}),
-			get: (namespace, key) => dynamodb.get({namespace, key}),
-			del: (namespace, key) => dynamodb.del({namespace, key}),
-			clear: (namespace) => dynamodb.fetch({namespace})
+			set: dynamodb.insertOrReplace,
+			get: dynamodb.get,
+			del: dynamodb.del,
+			clear: args => dynamodb.fetch(args)
 				.mergeMap(::dynamodb.del)
 		});
 
-		const fallback = args => Observable.of('value'); // fallback will be subscribed if key doesn't exists or is expired, this value will be attached to this key with provided ttr
+		const fallback = args => Observable.of('value'); // fallback will be subscribed if id doesn't exists or is expired, this value will be attached to this id with provided ttr
 
 		cacheDriver.get({
 			namespace,
-			key: 'inexistentKey'
+			id: 'inexistentId'
 		}, fallback, {
 			ttr: 100 // custom ttr
 		})
@@ -42,7 +42,7 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 
 		cacheDriver.get({
 			namespace,
-			key: 'someKey'
+			id: 'someId'
 		}, fallback, {
 			ttr: 100
 		})
@@ -52,7 +52,7 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 
 		cacheDriver.get({
 			namespace,
-			key: 'someKey',
+			id: 'someId',
 			forceRefresh: true
 		}, fallback, {
 			ttr: 100
@@ -65,25 +65,25 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 
 		cacheDriver.get({
 			namespace,
-			key: 'someKey'
+			id: 'someId'
 		}, fallback)
 		.subscribe(response => {
 			console.log(response); // will print "value" from cache, and run fallback in background to feed cache to the next request gets the fresh result
 		});
 
-		// FORCE CACHE REFRESH AFTER NEXT REQUEST ALL KEYS WHICH CONTAIN "key-"
+		// FORCE CACHE REFRESH AFTER NEXT REQUEST ALL IDS WHICH CONTAIN "id-"
 		cacheDriver.markToRefresh({
 			namespace,
-			keys: ['key-']
+			ids: ['id-']
 		})
 		.subscribe(response => {
 			console.log(response);
 		});
 
-		// UNSET KEY MANUALLY
+		// UNSET id MANUALLY
 		cacheDriver.del({
 			namespace,
-			key: 'key-1'
+			id: 'id-1'
 		})
 		.subscribe(response => {
 			console.log(response);

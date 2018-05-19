@@ -1,197 +1,206 @@
 const {
-	Observable
+    Observable
 } = require('rxjs');
 
 module.exports = class CacheDriver {
-	constructor(options = {}) {
-		if (!options.get) {
-			throw new Error('get is missing.');
-		}
-		
-		if (!options.set) {
-			throw new Error('set is missing.');
-		}
-		
-		if (!options.del) {
-			throw new Error('del is missing.');
-		}
+    constructor(options = {}) {
+        if (!options.get) {
+            throw new Error('get is missing.');
+        }
 
-		if (!options.clear) {
-			throw new Error('clear is missing.');
-		}
+        if (!options.set) {
+            throw new Error('set is missing.');
+        }
 
-		this.options = Object.assign({
-			ttr: 7200
-		}, options);
-	}
+        if (!options.del) {
+            throw new Error('del is missing.');
+        }
 
-	get(args, fallback, options) {
-		const {
-			namespace,
-			key
-		} = args;
+        if (!options.clear) {
+            throw new Error('clear is missing.');
+        }
 
-		options = Object.assign({}, this.options, options);
+        this.options = Object.assign({
+            ttr: 7200
+        }, options);
+    }
 
-		if (!namespace) {
-			return Observable.throw(new Error('No namespace provided.'));
-		}
+    get(args, fallback, options) {
+        const {
+            namespace,
+            id
+        } = args;
 
-		if (!key) {
-			return Observable.throw(new Error('No key provided.'));
-		}
+        options = Object.assign({}, this.options, options);
 
-		if (typeof fallback !== 'function') {
-			return Observable.throw(new Error('Fallback must be a function which returns an Observable.'));
-		}
+        if (!namespace) {
+            return Observable.throw(new Error('No namespace provided.'));
+        }
 
-		const _set = value => this._set({
-			namespace,
-			key,
-			value
-		});
+        if (!id) {
+            return Observable.throw(new Error('No id provided.'));
+        }
 
-		const fallbackAndSet = args => fallback(args)
-			.do(response => {
-				return _set(response)
-					.publish()
-					.connect()
-			});
+        if (typeof fallback !== 'function') {
+            return Observable.throw(new Error('Fallback must be a function which returns an Observable.'));
+        }
 
-		if(options.forceRefresh) {
-			return fallbackAndSet(args);
-		}
+        const _set = value => this._set({
+            namespace,
+            id,
+            value
+        });
 
-		return this._get({
-				namespace,
-				key
-			})
-			.mergeMap(response => {
-				const {
-					value = null,
-					createdAt = 0
-				} = response;
+        const fallbackAndSet = args => fallback(args)
+            .do(response => {
+                return _set(response)
+                    .publish()
+                    .connect()
+            });
 
-				if (!value) {
-					return fallbackAndSet(args);
-				}
+        if (options.forceRefresh) {
+            return fallbackAndSet(args);
+        }
 
-				const expired = Date.now() - createdAt >= (options.ttr * 1000) ? true : false;
+        return this._get({
+                namespace,
+                id
+            })
+            .mergeMap(response => {
+                const {
+                    value = null,
+                        createdAt = 0
+                } = response;
 
-				// just refresh to next request in background
-				if (expired) {
-					fallbackAndSet(args)
-						.publish()
-						.connect();
-				}
+                if (!value) {
+                    return fallbackAndSet(args);
+                }
 
-				return Observable.of(value);
-			});
-	}
+                const expired = Date.now() - createdAt >= (options.ttr * 1000) ? true : false;
 
-	_get(args) {
-		const {
-			namespace,
-			key
-		} = args;
+                // just refresh to next request in background
+                if (expired) {
+                    fallbackAndSet(args)
+                        .publish()
+                        .connect();
+                }
 
-		if (!namespace) {
-			return Observable.throw(new Error('No namespace provided.'));
-		}
+                return Observable.of(value);
+            });
+    }
 
-		if (!key) {
-			return Observable.throw(new Error('No key provided.'));
-		}
+    _get(args) {
+        const {
+            namespace,
+            id
+        } = args;
 
-		return this.options.get(namespace, key)
-			.mergeMap(response => {
-				if (!response) {
-					return Observable.of({});
-				}
+        if (!namespace) {
+            return Observable.throw(new Error('No namespace provided.'));
+        }
 
-				return Observable.of(typeof response === 'string' ? JSON.parse(response) : response);
-			})
-			.defaultIfEmpty({});
-	}
+        if (!id) {
+            return Observable.throw(new Error('No id provided.'));
+        }
 
-	_set(args) {
-		const {
-			namespace,
-			key,
-			value
-		} = args;
+        return this.options.get({
+                namespace,
+                id
+            })
+            .mergeMap(response => {
+                if (!response) {
+                    return Observable.of({});
+                }
 
-		if (!namespace) {
-			return Observable.throw(new Error('No namespace provided.'));
-		}
+                return Observable.of(response);
+            })
+            .defaultIfEmpty({});
+    }
 
-		if (!key) {
-			return Observable.throw(new Error('No key provided.'));
-		}
+    _set(args) {
+        const {
+            namespace,
+            id,
+            value
+        } = args;
 
-		if (!value) {
-			return Observable.empty();
-		}
+        if (!namespace) {
+            return Observable.throw(new Error('No namespace provided.'));
+        }
 
-		return this.options.set(namespace, key, JSON.stringify({
-				namespace,
-				key,
-				value,
-				createdAt: Date.now()
-			}));
-	}
+        if (!id) {
+            return Observable.throw(new Error('No id provided.'));
+        }
 
-	del(args) {
-		const {
-			namespace,
-			key
-		} = args;
+        if (!value) {
+            return Observable.empty();
+        }
 
-		if (!namespace) {
-			return Observable.throw(new Error('No namespace provided.'));
-		}
+        return this.options.set({
+            namespace,
+            id,
+            value,
+            createdAt: Date.now()
+        });
+    }
 
-		if (!key) {
-			return Observable.throw(new Error('No key provided.'));
-		}
+    del(args) {
+        const {
+            namespace,
+            id
+        } = args;
 
-		return this.options.del(namespace, key);
-	}
+        if (!namespace) {
+            return Observable.throw(new Error('No namespace provided.'));
+        }
 
-	markToRefresh(args) {
-		const {
-			namespace,
-			key
-		} = args;
+        if (!id) {
+            return Observable.throw(new Error('No id provided.'));
+        }
 
-		if (!namespace) {
-			return Observable.throw(new Error('No namespace provided.'));
-		}
+        return this.options.del({
+            namespace,
+            id
+        });
+    }
 
-		if (!key) {
-			return Observable.throw(new Error('No key provided.'));
-		}
+    markToRefresh(args) {
+        const {
+            namespace,
+            id
+        } = args;
 
-		return this.options.get(namespace, key)
-			.mergeMap(response => {
-				const value = JSON.parse(response);
+        if (!namespace) {
+            return Observable.throw(new Error('No namespace provided.'));
+        }
 
-				value.createdAt = 0;
+        if (!id) {
+            return Observable.throw(new Error('No id provided.'));
+        }
 
-				return this.options.set(namespace, key, JSON.stringify(value));
-			});
+        return this.options.get({
+                namespace,
+                id
+            })
+            .mergeMap(response => {
+                response.createdAt = 0;
 
-	}
+                return this.options.set(response);
+            });
 
-	clear(args = {}) {
-		const {
-			namespace
-		} = args;
+    }
 
-		if (!namespace) {
-			return Observable.throw(new Error('No namespace provided.'));
-		}
+    clear(args = {}) {
+        const {
+            namespace
+        } = args;
 
-		return this.options.clear(namespace);
-	}
+        if (!namespace) {
+            return Observable.throw(new Error('No namespace provided.'));
+        }
+
+        return this.options.clear({
+            namespace
+        });
+    }
 }
