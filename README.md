@@ -1,6 +1,4 @@
-[![CircleCI](https://circleci.com/gh/feliperohdee/smallorange-rxjs-cache-driver.svg?style=svg)](https://circleci.com/gh/feliperohdee/smallorange-rxjs-cache-driver)
-
-# Small Orange RXJS Cache Driver
+# RxJS Cache Driver
 
 Simple pluggable reactive cache driver powered and RxJS, it uses cache first strategy. Once expired, it returns cached value and feed cache in background to deliver fresh result at next request.
 It is pluggable with your custom logic via get, set, del, and clear operations.
@@ -11,10 +9,10 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 			Observable
 		} = require('rxjs');
 		
-		const CacheDriver = require('smallorange-rxjs-cache-driver');
+		const CacheDriver = require('rxjs-rxjs-cache-driver');
 		const {
 			DynamoDB
-		} = require('smallorange-dynamodb-client');
+		} = require('rxjs-dynamodb-client');
 
 		const dynamodb = new DynamoDB();
 
@@ -25,7 +23,9 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 			get: dynamodb.get,
 			del: dynamodb.del,
 			clear: args => dynamodb.fetch(args)
-				.mergeMap(::dynamodb.del)
+				.pipe(
+					mergeMap(dynamodb.del)
+				)
 		});
 
 		const fallback = args => Observable.of('value'); // fallback will be subscribed if id doesn't exists or is expired, this value will be attached to this id with provided ttr

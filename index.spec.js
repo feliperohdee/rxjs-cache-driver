@@ -2,11 +2,9 @@ const chai = require('chai');
 const sinon = require('sinon');
 const sinonChai = require('sinon-chai');
 
-const {
-    Observable
-} = require('rxjs');
+const rx = require('rxjs');
 
-const CacheDriver = require('../');
+const CacheDriver = require('./');
 
 chai.use(sinonChai);
 
@@ -15,6 +13,7 @@ const namespace = 'spec';
 const createdAt = Date.now();
 
 describe('index.js', () => {
+    let cacheDriver;
     let fallback;
 
     beforeEach(() => {
@@ -22,7 +21,7 @@ describe('index.js', () => {
             .returns(createdAt);
 
         fallback = sinon.stub()
-            .callsFake(() => Observable.of('fresh'));
+            .callsFake(() => rx.of('fresh'));
 
         cacheDriver = new CacheDriver({
             get: sinon.spy(({
@@ -30,23 +29,23 @@ describe('index.js', () => {
                 id
             }) => {
                 if (id === 'existentId') {
-                    return Observable.of({
+                    return rx.of({
                         namespace,
                         id,
                         value: 'cached',
                         createdAt
                     });
                 } else if (id === 'nullid') {
-                    return Observable.of(null);
+                    return rx.of(null);
                 }
 
-                return Observable.empty();
+                return rx.empty();
             }),
             set: sinon.spy(({
                 namespace,
                 id,
                 value
-            }) => Observable.of({
+            }) => rx.of({
                 namespace,
                 id,
                 value
@@ -54,13 +53,13 @@ describe('index.js', () => {
             del: sinon.spy(({
                 namespace,
                 id
-            }) => Observable.of({
+            }) => rx.of({
                 namespace,
                 id
             })),
             clear: sinon.spy(({
                 namespace
-            }) => Observable.of({
+            }) => rx.of({
                 namespace
             }))
         });
@@ -205,7 +204,7 @@ describe('index.js', () => {
 
         describe('_get error', () => {
             beforeEach(() => {
-                cacheDriver.options.get = () => Observable.throw('ops...');
+                cacheDriver.options.get = () => rx.throwError('ops...');
             });
 
             it('should throw', done => {
@@ -320,7 +319,7 @@ describe('index.js', () => {
 
         describe('on error', () => {
             beforeEach(() => {
-                cacheDriver.options.get = () => Observable.throw('ops...');
+                cacheDriver.options.get = () => rx.throwError('ops...');
             });
 
             it('should throw', done => {
@@ -386,7 +385,7 @@ describe('index.js', () => {
 
         describe('on error', () => {
             beforeEach(() => {
-                cacheDriver.options.set = () => Observable.throw('ops...');
+                cacheDriver.options.set = () => rx.throwError('ops...');
             });
 
             it('should throw', done => {

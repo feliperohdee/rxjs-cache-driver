@@ -1,6 +1,5 @@
-const {
-    Observable
-} = require('rxjs');
+const rx = require('rxjs');
+const rxop = require('rxjs/operators');
 
 module.exports = class CacheDriver {
     constructor(options = {}) {
@@ -34,15 +33,15 @@ module.exports = class CacheDriver {
         options = Object.assign({}, this.options, options);
 
         if (!namespace) {
-            return Observable.throw(new Error('No namespace provided.'));
+            return rx.throwError(new Error('No namespace provided.'));
         }
 
         if (!id) {
-            return Observable.throw(new Error('No id provided.'));
+            return rx.throwError(new Error('No id provided.'));
         }
 
         if (typeof fallback !== 'function') {
-            return Observable.throw(new Error('Fallback must be a function which returns an Observable.'));
+            return rx.throwError(new Error('Fallback must be a function which returns an Observable.'));
         }
 
         const _set = value => this._set({
@@ -52,11 +51,15 @@ module.exports = class CacheDriver {
         });
 
         const fallbackAndSet = args => fallback(args)
-            .do(response => {
-                return _set(response)
-                    .publish()
-                    .connect()
-            });
+            .pipe(
+                rxop.tap(response => {
+                    return _set(response)
+                        .pipe(
+                            rxop.publish()
+                        )
+                        .connect();
+                })
+            );
 
         if (options.forceRefresh) {
             return fallbackAndSet(args);
@@ -66,27 +69,31 @@ module.exports = class CacheDriver {
                 namespace,
                 id
             })
-            .mergeMap(response => {
-                const {
-                    value = null,
-                        createdAt = 0
-                } = response;
+            .pipe(
+                rxop.mergeMap(response => {
+                    const {
+                        value = null,
+                            createdAt = 0
+                    } = response;
 
-                if (!value) {
-                    return fallbackAndSet(args);
-                }
+                    if (!value) {
+                        return fallbackAndSet(args);
+                    }
 
-                const expired = Date.now() - createdAt >= (options.ttr * 1000) ? true : false;
+                    const expired = Date.now() - createdAt >= (options.ttr * 1000) ? true : false;
 
-                // just refresh to next request in background
-                if (expired) {
-                    fallbackAndSet(args)
-                        .publish()
-                        .connect();
-                }
+                    // just refresh to next request in background
+                    if (expired) {
+                        fallbackAndSet(args)
+                            .pipe(
+                                rxop.publish()
+                            )
+                            .connect();
+                    }
 
-                return Observable.of(value);
-            });
+                    return rx.of(value);
+                })
+            );
     }
 
     _get(args) {
@@ -96,25 +103,27 @@ module.exports = class CacheDriver {
         } = args;
 
         if (!namespace) {
-            return Observable.throw(new Error('No namespace provided.'));
+            return rx.throwError(new Error('No namespace provided.'));
         }
 
         if (!id) {
-            return Observable.throw(new Error('No id provided.'));
+            return rx.throwError(new Error('No id provided.'));
         }
 
         return this.options.get({
                 namespace,
                 id
             })
-            .mergeMap(response => {
-                if (!response) {
-                    return Observable.of({});
-                }
+            .pipe(
+                rxop.mergeMap(response => {
+                    if (!response) {
+                        return rx.of({});
+                    }
 
-                return Observable.of(response);
-            })
-            .defaultIfEmpty({});
+                    return rx.of(response);
+                }),
+                rxop.defaultIfEmpty({})
+            );
     }
 
     _set(args) {
@@ -125,15 +134,15 @@ module.exports = class CacheDriver {
         } = args;
 
         if (!namespace) {
-            return Observable.throw(new Error('No namespace provided.'));
+            return rx.throwError(new Error('No namespace provided.'));
         }
 
         if (!id) {
-            return Observable.throw(new Error('No id provided.'));
+            return rx.throwError(new Error('No id provided.'));
         }
 
         if (!value) {
-            return Observable.empty();
+            return rx.empty();
         }
 
         return this.options.set({
@@ -151,11 +160,11 @@ module.exports = class CacheDriver {
         } = args;
 
         if (!namespace) {
-            return Observable.throw(new Error('No namespace provided.'));
+            return rx.throwError(new Error('No namespace provided.'));
         }
 
         if (!id) {
-            return Observable.throw(new Error('No id provided.'));
+            return rx.throwError(new Error('No id provided.'));
         }
 
         return this.options.del({
@@ -171,22 +180,24 @@ module.exports = class CacheDriver {
         } = args;
 
         if (!namespace) {
-            return Observable.throw(new Error('No namespace provided.'));
+            return rx.throwError(new Error('No namespace provided.'));
         }
 
         if (!id) {
-            return Observable.throw(new Error('No id provided.'));
+            return rx.throwError(new Error('No id provided.'));
         }
 
         return this.options.get({
                 namespace,
                 id
             })
-            .mergeMap(response => {
-                response.createdAt = 0;
+            .pipe(
+                rxop.mergeMap(response => {
+                    response.createdAt = 0;
 
-                return this.options.set(response);
-            });
+                    return this.options.set(response);
+                })
+            );
 
     }
 
@@ -196,11 +207,11 @@ module.exports = class CacheDriver {
         } = args;
 
         if (!namespace) {
-            return Observable.throw(new Error('No namespace provided.'));
+            return rx.throwError(new Error('No namespace provided.'));
         }
 
         return this.options.clear({
             namespace
         });
     }
-}
+};
