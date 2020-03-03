@@ -494,5 +494,18 @@ describe('index.js', () => {
                     });
                 }, null, done);
         });
+        
+        it('should call clear with id', done => {
+            cacheDriver.clear({
+                    id: 'id',
+                    namespace
+                })
+                .subscribe(response => {
+                    expect(cacheDriver.options.clear).to.have.been.calledWith({
+                        id: 'id',
+                        namespace
+                    });
+                }, null, done);
+        });
     });
 });

@@ -210,8 +210,6 @@ module.exports = class CacheDriver {
             return rx.throwError(new Error('No namespace provided.'));
         }
 
-        return this.options.clear({
-            namespace
-        });
+        return this.options.clear(args);
     }
 };
