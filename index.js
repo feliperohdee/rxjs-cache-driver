@@ -20,7 +20,8 @@ module.exports = class CacheDriver {
         }
 
         this.options = Object.assign({
-            ttr: 7200
+            ttr: 7200,
+            ttl: 60 * 24 * 60 * 60 * 1000 // 60 days optional
         }, options);
     }
 
@@ -146,10 +147,11 @@ module.exports = class CacheDriver {
         }
 
         return this.options.set({
-            namespace,
+            createdAt: Date.now(),
             id,
-            value,
-            createdAt: Date.now()
+            namespace,
+            ttl: Math.floor((Date.now() + this.options.ttl) / 1000),
+            value
         });
     }
 

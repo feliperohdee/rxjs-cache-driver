@@ -171,10 +171,11 @@ describe('index.js', () => {
                             expect(response).to.equal('fresh');
                             expect(fallback).to.have.been.called;
                             expect(cacheDriver.options.set).to.have.been.calledWith({
-                                namespace,
+                                createdAt,
                                 id: 'existentId',
-                                value: 'fresh',
-                                createdAt
+                                namespace,
+                                ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
+                                value: 'fresh'
                             });
                         }, null, done);
                 });
@@ -193,10 +194,11 @@ describe('index.js', () => {
                         expect(response).to.equal('cached');
                         expect(fallback).to.have.been.called;
                         expect(cacheDriver.options.set).to.have.been.calledWith({
-                            namespace,
+                            createdAt,
                             id: 'existentId',
-                            value: 'fresh',
-                            createdAt
+                            namespace,
+                            ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
+                            value: 'fresh'
                         });
                     }, null, done);
             });
@@ -365,10 +367,11 @@ describe('index.js', () => {
                 })
                 .subscribe(() => {
                     expect(cacheDriver.options.set).to.have.been.calledWith({
-                        namespace,
+                        createdAt,
                         id: 'id',
-                        value: 'fresh',
-                        createdAt
+                        namespace,
+                        ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
+                        value: 'fresh'
                     });
                 }, null, done);
         });
