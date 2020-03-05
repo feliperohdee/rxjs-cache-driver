@@ -52,13 +52,23 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 
 		cacheDriver.get({
 			namespace,
-			id: 'someId',
-			forceRefresh: true
+			id: 'someId'
 		}, fallback, {
-			ttr: 100
+			ttr: 100,
+			refresh: true
 		})
 		.subscribe(response => {
-			console.log(response); // will print "value" from fallback and refresh cache with it
+			console.log(response); // will print "value" from fallback and refresh cache
+		});
+		
+		cacheDriver.get({
+			namespace,
+			id: 'someId'
+		}, fallback, {
+			ttr: 0
+		})
+		.subscribe(response => {
+			console.log(response); // will print "value" from cache and refresh cache in background
 		});
 
 		// IF EXPIRED

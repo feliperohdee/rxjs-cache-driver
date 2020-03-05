@@ -62,7 +62,7 @@ module.exports = class CacheDriver {
                 })
             );
 
-        if (options.forceRefresh) {
+        if (options.refresh) {
             return fallbackAndSet(args);
         }
 
@@ -74,7 +74,7 @@ module.exports = class CacheDriver {
                 rxop.mergeMap(response => {
                     const {
                         value = null,
-                            createdAt = 0
+                        createdAt = 0
                     } = response;
 
                     if (!value) {
