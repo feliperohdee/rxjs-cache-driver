@@ -1,5 +1,19 @@
 const rx = require('rxjs');
 const rxop = require('rxjs/operators');
+const zlib = require('zlib');
+
+const gzip = (data, compress = true) => {
+    return new rx.Observable(subscriber => {
+        zlib[compress ? 'gzip' : 'gunzip'](compress ? JSON.stringify(data) : data, (err, data) => {
+            if (err) {
+                return subscriber.error(err);
+            }
+
+            subscriber.next(compress ? data : JSON.parse(data));
+            subscriber.complete();
+        });
+    });
+};
 
 module.exports = class CacheDriver {
     constructor(options = {}) {
@@ -19,6 +33,7 @@ module.exports = class CacheDriver {
             throw new Error('clear is missing.');
         }
 
+        this.gzip = !!options.gzip;
         this.options = Object.assign({
             ttr: 7200,
             ttl: 60 * 24 * 60 * 60 * 1000 // 60 days optional
@@ -45,11 +60,13 @@ module.exports = class CacheDriver {
             return rx.throwError(new Error('Fallback must be a function which returns an Observable.'));
         }
 
-        const _set = value => this._set({
-            namespace,
-            id,
-            value
-        });
+        const _set = value => {
+            return this._set({
+                namespace,
+                id,
+                value
+            });
+        };
 
         const fallbackAndSet = args => fallback(args)
             .pipe(
@@ -74,7 +91,7 @@ module.exports = class CacheDriver {
                 rxop.mergeMap(response => {
                     const {
                         value = null,
-                        createdAt = 0
+                            createdAt = 0
                     } = response;
 
                     if (!value) {
@@ -121,6 +138,17 @@ module.exports = class CacheDriver {
                         return rx.of({});
                     }
 
+                    if (this.gzip) {
+                        return gzip(response.value, false)
+                            .pipe(
+                                rxop.map(value => {
+                                    return Object.assign({}, response, {
+                                        value
+                                    });
+                                })
+                            );
+                    }
+
                     return rx.of(response);
                 }),
                 rxop.defaultIfEmpty({})
@@ -146,13 +174,18 @@ module.exports = class CacheDriver {
             return rx.empty();
         }
 
-        return this.options.set({
-            createdAt: Date.now(),
-            id,
-            namespace,
-            ttl: Math.floor((Date.now() + this.options.ttl) / 1000),
-            value
-        });
+        return (this.gzip ? gzip(value, true) : rx.of(value))
+            .pipe(
+                rxop.mergeMap(value => {
+                    return this.options.set({
+                        createdAt: Date.now(),
+                        id,
+                        namespace,
+                        ttl: Math.floor((Date.now() + this.options.ttl) / 1000),
+                        value
+                    });
+                })
+            );
     }
 
     del(args) {

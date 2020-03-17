@@ -1,6 +1,7 @@
 const chai = require('chai');
 const sinon = require('sinon');
 const sinonChai = require('sinon-chai');
+const zlib = require('zlib');
 
 const rx = require('rxjs');
 
@@ -335,6 +336,38 @@ describe('index.js', () => {
                     });
             });
         });
+
+        describe('with gzip', () => {
+            beforeEach(() => {
+                cacheDriver.gzip = true;
+                cacheDriver.options.get = sinon.spy(({
+                    namespace,
+                    id
+                }) => {
+                    return rx.of({
+                        namespace,
+                        id,
+                        value: zlib.gzipSync(JSON.stringify('cached')),
+                        createdAt
+                    });
+                });
+            });
+
+            it('should unzip', done => {
+                cacheDriver._get({
+                        namespace,
+                        id: 'existentId'
+                    })
+                    .subscribe(response => {
+                        expect(response).to.deep.equal({
+                            namespace: 'spec',
+                            id: 'existentId',
+                            value: 'cached',
+                            createdAt: response.createdAt
+                        });
+                    }, null, done);
+            });
+        });
     });
 
     describe('_set', () => {
@@ -401,6 +434,30 @@ describe('index.js', () => {
                         expect(err).to.equal('ops...');
                         done();
                     });
+            });
+        });
+
+        describe('with gzip', () => {
+            beforeEach(() => {
+                cacheDriver.gzip = true;
+            });
+
+            it('should zip', done => {
+                cacheDriver._set({
+                        namespace,
+                        id: 'id',
+                        value: 'fresh',
+                        createdAt
+                    })
+                    .subscribe(response => {
+                        expect(cacheDriver.options.set).to.have.been.calledWith({
+                            createdAt,
+                            id: 'id',
+                            namespace,
+                            ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
+                            value: zlib.gzipSync(JSON.stringify('fresh'))
+                        });
+                    }, null, done);
             });
         });
     });
@@ -497,7 +554,7 @@ describe('index.js', () => {
                     });
                 }, null, done);
         });
-        
+
         it('should call clear with id', done => {
             cacheDriver.clear({
                     id: 'id',
