@@ -52,10 +52,6 @@ module.exports = class CacheDriver {
             return rx.throwError(new Error('No namespace provided.'));
         }
 
-        if (!id) {
-            return rx.throwError(new Error('No id provided.'));
-        }
-
         if (typeof fallback !== 'function') {
             return rx.throwError(new Error('Fallback must be a function which returns an Observable.'));
         }
@@ -91,7 +87,7 @@ module.exports = class CacheDriver {
                 rxop.mergeMap(response => {
                     const {
                         value = null,
-                            createdAt = 0
+                        createdAt = 0
                     } = response;
 
                     if (!value) {
@@ -122,10 +118,6 @@ module.exports = class CacheDriver {
 
         if (!namespace) {
             return rx.throwError(new Error('No namespace provided.'));
-        }
-
-        if (!id) {
-            return rx.throwError(new Error('No id provided.'));
         }
 
         return this.options.get({
@@ -166,10 +158,6 @@ module.exports = class CacheDriver {
             return rx.throwError(new Error('No namespace provided.'));
         }
 
-        if (!id) {
-            return rx.throwError(new Error('No id provided.'));
-        }
-
         if (!value) {
             return rx.empty();
         }
@@ -198,10 +186,6 @@ module.exports = class CacheDriver {
             return rx.throwError(new Error('No namespace provided.'));
         }
 
-        if (!id) {
-            return rx.throwError(new Error('No id provided.'));
-        }
-
         return this.options.del({
             namespace,
             id
@@ -216,10 +200,6 @@ module.exports = class CacheDriver {
 
         if (!namespace) {
             return rx.throwError(new Error('No namespace provided.'));
-        }
-
-        if (!id) {
-            return rx.throwError(new Error('No id provided.'));
         }
 
         return this.options.get({

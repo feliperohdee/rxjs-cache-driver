@@ -114,17 +114,6 @@ describe('index.js', () => {
                 });
         });
 
-        it('should throw if no id', done => {
-            cacheDriver.get({
-                    namespace
-                }, fallback)
-                .subscribe(null, err => {
-                    expect(err.message).to.equal('No id provided.');
-
-                    done();
-                });
-        });
-
         it('should throw if fallback isn\'t a function', done => {
             cacheDriver.get({
                     namespace,
@@ -255,17 +244,6 @@ describe('index.js', () => {
                 });
         });
 
-        it('should throw if no id', done => {
-            cacheDriver._get({
-                    namespace
-                })
-                .subscribe(null, err => {
-                    expect(err.message).to.equal('No id provided.');
-
-                    done();
-                });
-        });
-
         it('should return', done => {
             cacheDriver._get({
                     namespace,
@@ -273,7 +251,7 @@ describe('index.js', () => {
                 })
                 .subscribe(response => {
                     expect(response).to.deep.equal({
-                        namespace: 'spec',
+                        namespace,
                         id: 'existentId',
                         value: 'cached',
                         createdAt: response.createdAt
@@ -288,7 +266,7 @@ describe('index.js', () => {
                 })
                 .subscribe(response => {
                     expect(response).to.deep.equal({
-                        namespace: 'spec',
+                        namespace,
                         id: 'existentId',
                         value: 'cached',
                         createdAt: response.createdAt
@@ -360,7 +338,7 @@ describe('index.js', () => {
                     })
                     .subscribe(response => {
                         expect(response).to.deep.equal({
-                            namespace: 'spec',
+                            namespace,
                             id: 'existentId',
                             value: 'cached',
                             createdAt: response.createdAt
@@ -375,17 +353,6 @@ describe('index.js', () => {
             cacheDriver._set({})
                 .subscribe(null, err => {
                     expect(err.message).to.equal('No namespace provided.');
-
-                    done();
-                });
-        });
-
-        it('should throw if no id', done => {
-            cacheDriver._set({
-                    namespace
-                })
-                .subscribe(null, err => {
-                    expect(err.message).to.equal('No id provided.');
 
                     done();
                 });
@@ -472,17 +439,6 @@ describe('index.js', () => {
                 });
         });
 
-        it('should throw if no id', done => {
-            cacheDriver.del({
-                    namespace
-                })
-                .subscribe(null, err => {
-                    expect(err.message).to.equal('No id provided.');
-
-                    done();
-                });
-        });
-
         it('should call del', done => {
             cacheDriver.del({
                     namespace,
@@ -490,7 +446,7 @@ describe('index.js', () => {
                 })
                 .subscribe(() => {
                     expect(cacheDriver.options.del).to.have.been.calledWith({
-                        namespace: 'spec',
+                        namespace,
                         id: 'id'
                     });
                 }, null, done);
@@ -502,17 +458,6 @@ describe('index.js', () => {
             cacheDriver.markToRefresh({})
                 .subscribe(null, err => {
                     expect(err.message).to.equal('No namespace provided.');
-
-                    done();
-                });
-        });
-
-        it('should throw if no id', done => {
-            cacheDriver.markToRefresh({
-                    namespace
-                })
-                .subscribe(null, err => {
-                    expect(err.message).to.equal('No id provided.');
 
                     done();
                 });
