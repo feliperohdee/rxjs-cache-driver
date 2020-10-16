@@ -35,7 +35,7 @@ module.exports = class CacheDriver {
 
         this.gzip = !!options.gzip;
         this.options = Object.assign({
-            ttr: 7200,
+            ttr: 7200 * 1000, // 2 hours optional
             ttl: 60 * 24 * 60 * 60 * 1000 // 60 days optional
         }, options);
     }
@@ -94,7 +94,7 @@ module.exports = class CacheDriver {
                         return fallbackAndSet(args);
                     }
 
-                    const expired = Date.now() - createdAt >= (options.ttr * 1000) ? true : false;
+                    const expired = Date.now() - createdAt >= options.ttr ? true : false;
 
                     // just refresh to next request in background
                     if (expired) {
