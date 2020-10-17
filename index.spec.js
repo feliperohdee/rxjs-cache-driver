@@ -13,8 +13,14 @@ const expect = chai.expect;
 const namespace = 'spec';
 const createdAt = Date.now();
 
-describe('index.js', () => {
-    let cacheDriver;
+describe.only('index.js', () => {
+    let cacheDriver = new CacheDriver({
+        clear: () => null,
+        del: () => null,
+        get: () => null,
+        set: () => null
+    });
+
     let fallback;
 
     beforeEach(() => {
@@ -317,7 +323,7 @@ describe('index.js', () => {
 
         describe('with gzip', () => {
             beforeEach(() => {
-                cacheDriver.gzip = true;
+                cacheDriver.options.gzip = true;
                 cacheDriver.options.get = sinon.spy(({
                     namespace,
                     id
@@ -345,6 +351,121 @@ describe('index.js', () => {
                         });
                     }, null, done);
             });
+        });
+    });
+
+    describe('_gzip', () => {
+        it('should not gzip if false', done => {
+            cacheDriver.options.gzip = false;
+            cacheDriver._gzip({
+                    value: {
+                        a: 1
+                    }
+                })
+                .subscribe(response => {
+                    expect(response).to.deep.equal({
+                        value: {
+                            a: 1
+                        }
+                    });
+                }, null, done);
+        });
+        
+        it('should not gzip if wrong option type', done => {
+            cacheDriver.options.gzip = 'a';
+            cacheDriver._gzip({
+                    value: {
+                        a: 1
+                    }
+                })
+                .subscribe(response => {
+                    expect(response).to.deep.equal({
+                        value: {
+                            a: 1
+                        }
+                    });
+                }, null, done);
+        });
+        
+        it('should not gzip if lass than threshold', done => {
+            cacheDriver.options.gzip = 10;
+            cacheDriver._gzip({
+                    value: {
+                        a: 1
+                    }
+                })
+                .subscribe(response => {
+                    expect(response).to.deep.equal({
+                        value: {
+                            a: 1
+                        }
+                    });
+                }, null, done);
+        });
+        
+        it('should gzip', done => {
+            cacheDriver.options.gzip = 6 / 100;
+            cacheDriver._gzip({
+                    value: {
+                        a: 1
+                    }
+                })
+                .subscribe(response => {
+                    expect(response).to.deep.equal({
+                        value: zlib.gzipSync(JSON.stringify({
+                            a: 1
+                        }))
+                    });
+                }, null, done);
+        });
+    });
+
+    describe('_gunzip', () => {
+        it('should not unzip object', done => {
+            cacheDriver._gunzip({
+                value: {
+                    a: 1
+                }
+            })
+            .subscribe(response => {
+                expect(response).to.deep.equal({
+                    value: {
+                        a: 1
+                    }
+                });
+            }, null, done);
+        });
+        
+        it('should not unzip other buffer', done => {
+            const buffer = Buffer.from(JSON.stringify({
+                a: 1
+            }));
+
+            cacheDriver._gunzip({
+                value: buffer
+            })
+            .subscribe(response => {
+                expect(response).to.deep.equal({
+                    value: buffer
+                });
+            }, null, done);
+        });
+        
+        it('should unzip', done => {
+            const zipped = zlib.gzipSync(JSON.stringify({
+                a: 1
+            }));
+
+            cacheDriver._gunzip({
+                value: zipped
+            })
+            .subscribe(response => {
+                expect(response).to.deep.equal({
+                    value: {
+                        a: 1
+                    }
+                });
+            }, null, done);
         });
     });
 
@@ -406,7 +527,7 @@ describe('index.js', () => {
 
         describe('with gzip', () => {
             beforeEach(() => {
-                cacheDriver.gzip = true;
+                cacheDriver.options.gzip = true;
             });
 
             it('should zip', done => {

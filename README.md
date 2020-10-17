@@ -18,7 +18,7 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 
 		const namespace = 'someNamespace';
 		const cacheDriver = new CacheDriver({
-			gzip: false,
+			gzip: false, // or number in Kb
 			ttr: 7200 * 1000, // default time to refresh (2 hours default)
 			set: dynamodb.insertOrReplace,
 			get: dynamodb.get,

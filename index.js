@@ -1,19 +1,9 @@
+const {
+    Buffer
+} = require('buffer');
 const rx = require('rxjs');
 const rxop = require('rxjs/operators');
 const zlib = require('zlib');
-
-const gzip = (data, compress = true) => {
-    return new rx.Observable(subscriber => {
-        zlib[compress ? 'gzip' : 'gunzip'](compress ? JSON.stringify(data) : data, (err, data) => {
-            if (err) {
-                return subscriber.error(err);
-            }
-
-            subscriber.next(compress ? data : JSON.parse(data));
-            subscriber.complete();
-        });
-    });
-};
 
 module.exports = class CacheDriver {
     constructor(options = {}) {
@@ -33,11 +23,11 @@ module.exports = class CacheDriver {
             throw new Error('clear is missing.');
         }
 
-        this.gzip = !!options.gzip;
-        this.options = Object.assign({
+        this.options = {
+            ...options,
             ttr: 7200 * 1000, // 2 hours optional
             ttl: 60 * 24 * 60 * 60 * 1000 // 60 days optional
-        }, options);
+        };
     }
 
     get(args, fallback, options) {
@@ -46,7 +36,10 @@ module.exports = class CacheDriver {
             id
         } = args;
 
-        options = Object.assign({}, this.options, options);
+        options = {
+            ...this.options,
+            ...options
+        };
 
         if (!namespace) {
             return rx.throwError(new Error('No namespace provided.'));
@@ -87,7 +80,7 @@ module.exports = class CacheDriver {
                 rxop.mergeMap(response => {
                     const {
                         value = null,
-                        createdAt = 0
+                            createdAt = 0
                     } = response;
 
                     if (!value) {
@@ -130,27 +123,78 @@ module.exports = class CacheDriver {
                         return rx.of({});
                     }
 
-                    if (this.gzip) {
-                        return gzip(response.value, false)
-                            .pipe(
-                                rxop.map(value => {
-                                    return Object.assign({}, response, {
-                                        value
-                                    });
-                                })
-                            );
-                    }
-
-                    return rx.of(response);
+                    return this._gunzip(response);
                 }),
                 rxop.defaultIfEmpty({})
             );
     }
 
+    _gzip(data) {
+        return new rx.Observable(subscriber => {
+            let compress = true;
+            let valueBuffer = JSON.stringify(data.value);
+
+            if (typeof this.options.gzip === 'boolean') {
+                compress = this.options.gzip;
+            } else if (typeof this.options.gzip === 'number') {
+                compress = Buffer.byteLength(valueBuffer) > this.options.gzip * 100;
+            } else {
+                compress = false;
+            }
+
+            if (compress) {
+                return zlib.gzip(valueBuffer, (err, buffer) => {
+                    if (err) {
+                        return subscriber.error(err);
+                    }
+
+                    subscriber.next({
+                        ...data,
+                        value: buffer
+                    });
+                    subscriber.complete();
+                });
+            }
+
+            subscriber.next(data);
+            subscriber.complete();
+        });
+    }
+
+    _gunzip(data) {
+        return new rx.Observable(subscriber => {
+            const {
+                value
+            } = data;
+
+            if (
+                Buffer.isBuffer(value) &&
+                value.length >= 3 &&
+                value[0] === 0x1F &&
+                value[1] === 0x8B &&
+                value[2] === 0x08
+            ) {
+                return zlib.gunzip(value, (err, buffer) => {
+                    if (err) {
+                        return subscriber.error(err);
+                    }
+
+                    subscriber.next({
+                        ...data,
+                        value: JSON.parse(buffer)
+                    });
+                    subscriber.complete();
+                });
+            }
+
+            subscriber.next(data);
+            subscriber.complete();
+        });
+    }
+
     _set(args) {
         const {
             namespace,
-            id,
             value
         } = args;
 
@@ -162,15 +206,13 @@ module.exports = class CacheDriver {
             return rx.empty();
         }
 
-        return (this.gzip ? gzip(value, true) : rx.of(value))
+        return this._gzip(args)
             .pipe(
-                rxop.mergeMap(value => {
+                rxop.mergeMap(response => {
                     return this.options.set({
+                        ...response,
                         createdAt: Date.now(),
-                        id,
-                        namespace,
-                        ttl: Math.floor((Date.now() + this.options.ttl) / 1000),
-                        value
+                        ttl: Math.floor((Date.now() + this.options.ttl) / 1000)
                     });
                 })
             );
