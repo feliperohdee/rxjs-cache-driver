@@ -13,7 +13,7 @@ const expect = chai.expect;
 const namespace = 'spec';
 const createdAt = Date.now();
 
-describe.only('index.js', () => {
+describe('index.js', () => {
     let cacheDriver = new CacheDriver({
         clear: () => null,
         del: () => null,
