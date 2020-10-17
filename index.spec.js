@@ -404,7 +404,7 @@ describe.only('index.js', () => {
         });
         
         it('should gzip', done => {
-            cacheDriver.options.gzip = 6 / 100;
+            cacheDriver.options.gzip = 6 / 1000;
             cacheDriver._gzip({
                     value: {
                         a: 1

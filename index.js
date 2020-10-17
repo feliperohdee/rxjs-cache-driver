@@ -137,7 +137,7 @@ module.exports = class CacheDriver {
             if (typeof this.options.gzip === 'boolean') {
                 compress = this.options.gzip;
             } else if (typeof this.options.gzip === 'number') {
-                compress = Buffer.byteLength(valueBuffer) > this.options.gzip * 100;
+                compress = Buffer.byteLength(valueBuffer) > this.options.gzip * 1000;
             } else {
                 compress = false;
             }
