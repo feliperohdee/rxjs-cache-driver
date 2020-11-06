@@ -1,6 +1,3 @@
-const {
-    Buffer
-} = require('buffer');
 const rx = require('rxjs');
 const rxop = require('rxjs/operators');
 const zlib = require('zlib');
@@ -25,6 +22,7 @@ module.exports = class CacheDriver {
 
         this.options = {
             ...options,
+            setFilter: () => true,
             ttr: 7200 * 1000, // 2 hours optional
             ttl: 60 * 24 * 60 * 60 * 1000 // 60 days optional
         };
@@ -60,11 +58,17 @@ module.exports = class CacheDriver {
         const fallbackAndSet = args => fallback(args)
             .pipe(
                 rxop.tap(response => {
-                    return _set(response)
-                        .pipe(
-                            rxop.publish()
-                        )
-                        .connect();
+                    if (typeof options.setFilter !== 'function') {
+                        options.setFilter = () => true;
+                    }
+
+                    if (options.setFilter(response)) {
+                        _set(response)
+                            .pipe(
+                                rxop.publish()
+                            )
+                            .connect();
+                    }
                 })
             );
 

@@ -21,6 +21,7 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 			gzip: false, // or number in Kb
 			ttr: 7200 * 1000, // default time to refresh (2 hours default)
 			set: dynamodb.insertOrReplace,
+			setFilter: args => true, // filter when cache should set
 			get: dynamodb.get,
 			del: dynamodb.del,
 			clear: args => dynamodb.fetch(args)

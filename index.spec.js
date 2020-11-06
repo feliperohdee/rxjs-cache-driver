@@ -143,6 +143,22 @@ describe('index.js', () => {
                     expect(cacheDriver.options.set).to.have.been.called;
                 }, null, done);
         });
+        
+        it('should run fallback and not set cache if setFilter returns false', done => {
+            cacheDriver.get({
+                    namespace,
+                    id: 'inexistentId'
+                }, fallback, {
+                    setFilter: response => {
+                        return response !== 'fresh';
+                    }
+                })
+                .subscribe(response => {
+                    expect(response).to.equal('fresh');
+                    expect(fallback).to.have.been.called;
+                    expect(cacheDriver.options.set).to.not.have.been.called;
+                }, null, done);
+        });
 
         describe('no expired', () => {
             it('should get cached value', done => {
