@@ -129,6 +129,16 @@ module.exports = class CacheDriver {
 
                     return this._gunzip(response);
                 }),
+                rxop.map(response => {
+                    if (response.value) {
+                        return {
+                            ...response,
+                            value: JSON.parse(response.value)
+                        };
+                    }
+
+                    return response;
+                }),
                 rxop.defaultIfEmpty({})
             );
     }
@@ -136,18 +146,24 @@ module.exports = class CacheDriver {
     _gzip(data) {
         return new rx.Observable(subscriber => {
             let compress = true;
-            let valueBuffer = JSON.stringify(data.value);
+
+            if (
+                typeof data.value !== 'string' &&
+                !Buffer.isBuffer(data.value)
+            ) {
+                throw new Error('value must be string or Buffer.');
+            }
 
             if (typeof this.options.gzip === 'boolean') {
                 compress = this.options.gzip;
             } else if (typeof this.options.gzip === 'number') {
-                compress = Buffer.byteLength(valueBuffer) > this.options.gzip * 1000;
+                compress = Buffer.byteLength(data.value) > this.options.gzip * 1000;
             } else {
                 compress = false;
             }
 
             if (compress) {
-                return zlib.gzip(valueBuffer, (err, buffer) => {
+                return zlib.gzip(data.value, (err, buffer) => {
                     if (err) {
                         return subscriber.error(err);
                     }
@@ -178,14 +194,14 @@ module.exports = class CacheDriver {
                 value[1] === 0x8B &&
                 value[2] === 0x08
             ) {
-                return zlib.gunzip(value, (err, buffer) => {
+                return zlib.gunzip(value, (err, value) => {
                     if (err) {
                         return subscriber.error(err);
                     }
 
                     subscriber.next({
                         ...data,
-                        value: JSON.parse(buffer)
+                        value: value.toString()
                     });
                     subscriber.complete();
                 });
@@ -209,6 +225,11 @@ module.exports = class CacheDriver {
         if (!value) {
             return rx.empty();
         }
+
+        args = {
+            ...args,
+            value: JSON.stringify(value)
+        };
 
         return this._gzip(args)
             .pipe(
