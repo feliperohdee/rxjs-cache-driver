@@ -52,7 +52,7 @@ module.exports = class CacheDriver {
                 namespace,
                 id,
                 value
-            });
+            }, options);
         };
 
         const fallbackAndSet = args => fallback(args)
@@ -212,11 +212,16 @@ module.exports = class CacheDriver {
         });
     }
 
-    _set(args) {
+    _set(args, options) {
         const {
             namespace,
             value
         } = args;
+
+        options = {
+            ...this.options,
+            ...options
+        };
 
         if (!namespace) {
             return rx.throwError(new Error('No namespace provided.'));
@@ -234,10 +239,10 @@ module.exports = class CacheDriver {
         return this._gzip(args)
             .pipe(
                 rxop.mergeMap(response => {
-                    return this.options.set({
+                    return options.set({
                         ...response,
                         createdAt: Date.now(),
-                        ttl: Math.floor((Date.now() + this.options.ttl) / 1000)
+                        ttl: Math.floor((Date.now() + options.ttl) / 1000)
                     });
                 })
             );

@@ -140,7 +140,13 @@ describe('index.js', () => {
                 .subscribe(response => {
                     expect(response).to.equal('fresh');
                     expect(fallback).to.have.been.called;
-                    expect(cacheDriver.options.set).to.have.been.called;
+                    expect(cacheDriver.options.set).to.have.been.calledWith({
+                        createdAt,
+                        id: 'inexistentId',
+                        namespace,
+                        ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
+                        value: JSON.stringify('fresh')
+                    });
                 }, null, done);
         });
 
@@ -157,6 +163,26 @@ describe('index.js', () => {
                     expect(response).to.equal('fresh');
                     expect(fallback).to.have.been.called;
                     expect(cacheDriver.options.set).to.not.have.been.called;
+                }, null, done);
+        });
+
+        it('should run fallback and set cache with custom ttl', done => {
+            cacheDriver.get({
+                    namespace,
+                    id: 'inexistentId'
+                }, fallback, {
+                    ttl: 1
+                })
+                .subscribe(response => {
+                    expect(response).to.equal('fresh');
+                    expect(fallback).to.have.been.called;
+                    expect(cacheDriver.options.set).to.have.been.calledWith({
+                        createdAt,
+                        id: 'inexistentId',
+                        namespace,
+                        ttl: Math.floor((createdAt + 1) / 1000),
+                        value: JSON.stringify('fresh')
+                    });
                 }, null, done);
         });
 
@@ -520,6 +546,26 @@ describe('index.js', () => {
                         id: 'id',
                         namespace,
                         ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
+                        value: JSON.stringify('fresh')
+                    });
+                }, null, done);
+        });
+        
+        it('should call set with custom options', done => {
+            cacheDriver._set({
+                    namespace,
+                    id: 'id',
+                    value: 'fresh',
+                    createdAt
+                }, {
+                    ttl: 1
+                })
+                .subscribe(() => {
+                    expect(cacheDriver.options.set).to.have.been.calledWith({
+                        createdAt,
+                        id: 'id',
+                        namespace,
+                        ttl: Math.floor((createdAt + 1) / 1000),
                         value: JSON.stringify('fresh')
                     });
                 }, null, done);
