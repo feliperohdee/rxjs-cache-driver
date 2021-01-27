@@ -1,6 +1,6 @@
 {
     "name": "rxjs-cache-driver",
-    "version": "1.0.12",
+    "version": "1.0.13",
     "description": "Simple pluggable reactive cache driver powered by RxJS.",
     "main": "index.js",
     "scripts": {

@@ -1,6 +1,6 @@
-const rx = require('rxjs');
-const rxop = require('rxjs/operators');
 const zlib = require('zlib');
+
+const rx = require('./rx');
 
 module.exports = class CacheDriver {
     constructor(options = {}) {
@@ -57,7 +57,7 @@ module.exports = class CacheDriver {
 
         const fallbackAndSet = args => fallback(args)
             .pipe(
-                rxop.tap(response => {
+                rx.tap(response => {
                     if (typeof options.setFilter !== 'function') {
                         options.setFilter = () => true;
                     }
@@ -65,7 +65,7 @@ module.exports = class CacheDriver {
                     if (options.setFilter(response)) {
                         _set(response)
                             .pipe(
-                                rxop.publish()
+                                rx.publish()
                             )
                             .connect();
                     }
@@ -81,7 +81,7 @@ module.exports = class CacheDriver {
                 id
             })
             .pipe(
-                rxop.mergeMap(response => {
+                rx.mergeMap(response => {
                     const {
                         value = null,
                             createdAt = 0
@@ -97,7 +97,7 @@ module.exports = class CacheDriver {
                     if (expired) {
                         fallbackAndSet(args)
                             .pipe(
-                                rxop.publish()
+                                rx.publish()
                             )
                             .connect();
                     }
@@ -122,14 +122,14 @@ module.exports = class CacheDriver {
                 id
             })
             .pipe(
-                rxop.mergeMap(response => {
+                rx.mergeMap(response => {
                     if (!response) {
                         return rx.of({});
                     }
 
                     return this._gunzip(response);
                 }),
-                rxop.map(response => {
+                rx.map(response => {
                     if (response.value) {
                         return {
                             ...response,
@@ -139,7 +139,7 @@ module.exports = class CacheDriver {
 
                     return response;
                 }),
-                rxop.defaultIfEmpty({})
+                rx.defaultIfEmpty({})
             );
     }
 
@@ -238,7 +238,7 @@ module.exports = class CacheDriver {
 
         return this._gzip(args)
             .pipe(
-                rxop.mergeMap(response => {
+                rx.mergeMap(response => {
                     return options.set({
                         ...response,
                         createdAt: Date.now(),
@@ -279,7 +279,7 @@ module.exports = class CacheDriver {
                 id
             })
             .pipe(
-                rxop.mergeMap(response => {
+                rx.mergeMap(response => {
                     response.createdAt = 0;
 
                     return this.options.set(response);
