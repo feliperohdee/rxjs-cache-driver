@@ -21,13 +21,13 @@ describe('index.js', () => {
         set: () => null
     });
 
-    let fallback;
+    let source;
 
     beforeEach(() => {
         sinon.stub(Date, 'now')
             .returns(createdAt);
 
-        fallback = sinon.stub()
+        source = sinon.stub()
             .callsFake(() => rx.of('fresh'));
 
         cacheDriver = new CacheDriver({
@@ -112,7 +112,7 @@ describe('index.js', () => {
 
     describe('get', () => {
         it('should throw if no namespace', done => {
-            cacheDriver.get({}, fallback)
+            cacheDriver.get({}, source)
                 .subscribe(null, err => {
                     expect(err.message).to.equal('No namespace provided.');
 
@@ -120,26 +120,26 @@ describe('index.js', () => {
                 });
         });
 
-        it('should throw if fallback isn\'t a function', done => {
+        it('should throw if source isn\'t a function', done => {
             cacheDriver.get({
                     namespace,
                     id: 'id'
                 }, null)
                 .subscribe(null, err => {
-                    expect(err.message).to.equal('Fallback must be a function which returns an Observable.');
+                    expect(err.message).to.equal('Source must be a function which returns an Observable.');
 
                     done();
                 });
         });
 
-        it('should run fallback and set cache in background if no cached value', done => {
+        it('should run source and set cache if no cached value', done => {
             cacheDriver.get({
                     namespace,
                     id: 'inexistentId'
-                }, fallback)
+                }, source)
                 .subscribe(response => {
                     expect(response).to.equal('fresh');
-                    expect(fallback).to.have.been.called;
+                    expect(source).to.have.been.called;
                     expect(cacheDriver.options.set).to.have.been.calledWith({
                         createdAt,
                         id: 'inexistentId',
@@ -150,32 +150,32 @@ describe('index.js', () => {
                 }, null, done);
         });
 
-        it('should run fallback and not set cache if setFilter returns false', done => {
+        it('should run source and not set cache if setFilter returns false', done => {
             cacheDriver.get({
                     namespace,
                     id: 'inexistentId'
-                }, fallback, {
+                }, source, {
                     setFilter: response => {
                         return response !== 'fresh';
                     }
                 })
                 .subscribe(response => {
                     expect(response).to.equal('fresh');
-                    expect(fallback).to.have.been.called;
+                    expect(source).to.have.been.called;
                     expect(cacheDriver.options.set).to.not.have.been.called;
                 }, null, done);
         });
 
-        it('should run fallback and set cache with custom ttl', done => {
+        it('should run source and set cache with custom ttl', done => {
             cacheDriver.get({
                     namespace,
                     id: 'inexistentId'
-                }, fallback, {
+                }, source, {
                     ttl: 1
                 })
                 .subscribe(response => {
                     expect(response).to.equal('fresh');
-                    expect(fallback).to.have.been.called;
+                    expect(source).to.have.been.called;
                     expect(cacheDriver.options.set).to.have.been.calledWith({
                         createdAt,
                         id: 'inexistentId',
@@ -191,7 +191,7 @@ describe('index.js', () => {
                 cacheDriver.get({
                         namespace,
                         id: 'existentId'
-                    }, fallback)
+                    }, source)
                     .subscribe(response => {
                         expect(response).to.equal('cached');
                     }, null, done);
@@ -202,12 +202,12 @@ describe('index.js', () => {
                     cacheDriver.get({
                             namespace,
                             id: 'existentId'
-                        }, fallback, {
+                        }, source, {
                             refresh: true
                         })
                         .subscribe(response => {
                             expect(response).to.equal('fresh');
-                            expect(fallback).to.have.been.called;
+                            expect(source).to.have.been.called;
                             expect(cacheDriver.options.set).to.have.been.calledWith({
                                 createdAt,
                                 id: 'existentId',
@@ -221,16 +221,16 @@ describe('index.js', () => {
         });
 
         describe('expired ttr', () => {
-            it('should get cached value and refresh in background', done => {
+            it('should refresh', done => {
                 cacheDriver.get({
                         namespace,
                         id: 'existentId'
-                    }, fallback, {
+                    }, source, {
                         ttr: 0
                     })
                     .subscribe(response => {
-                        expect(response).to.equal('cached');
-                        expect(fallback).to.have.been.called;
+                        expect(response).to.equal('fresh');
+                        expect(source).to.have.been.called;
                         expect(cacheDriver.options.set).to.have.been.calledWith({
                             createdAt,
                             id: 'existentId',
@@ -251,7 +251,7 @@ describe('index.js', () => {
                 cacheDriver.get({
                         namespace,
                         id: 'id'
-                    }, fallback)
+                    }, source)
                     .subscribe(null, err => {
                         expect(err).to.equal('ops...');
                         done();
@@ -273,7 +273,7 @@ describe('index.js', () => {
                 cacheDriver.get({
                         namespace,
                         id: 'existentId'
-                    }, fallback)
+                    }, source)
                     .subscribe(null, err => {
                         expect(err.message).to.equal('non catched error');
                         done();

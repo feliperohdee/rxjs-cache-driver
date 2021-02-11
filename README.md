@@ -1,13 +1,10 @@
 # RxJS Cache Driver
 
-Simple pluggable reactive cache driver powered and RxJS, it uses cache first strategy. Once expired, it returns cached value and feed cache in background to deliver fresh result at next request.
-It is pluggable with your custom logic via get, set, del, and clear operations.
+Simple pluggable reactive cache driver powered by RxJS. Pluggable with your custom logic via get, set, del, and clear operations.
 
 ## Sample (with DynamoDB)
 		
-		const {
-			Observable
-		} = require('rxjs');
+		const rx = require('rxjs');
 		
 		const CacheDriver = require('rxjs-rxjs-cache-driver');
 		const {
@@ -30,22 +27,25 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 				)
 		});
 
-		const fallback = args => Observable.of('value'); // fallback will be subscribed if id doesn't exists or is expired, this value will be attached to this id with provided ttr
+		// source will be subscribed if id doesn't exists or is expired, this value will be attached to this id with provided ttr
+		const source = args => {
+			retun rx.of('value');
+		};
 
 		cacheDriver.get({
 			namespace,
 			id: 'inexistentId'
-		}, fallback, {
+		}, source, {
 			ttr: 100 // custom ttr
 		})
 		.subscribe(response => {
-			console.log(response); // will print "value" from fallback
+			console.log(response); // will print "value" from source
 		});
 
 		cacheDriver.get({
 			namespace,
 			id: 'someId'
-		}, fallback, {
+		}, source, {
 			ttr: 100
 		})
 		.subscribe(response => {
@@ -55,44 +55,33 @@ It is pluggable with your custom logic via get, set, del, and clear operations.
 		cacheDriver.get({
 			namespace,
 			id: 'someId'
-		}, fallback, {
+		}, source, {
 			ttr: 100,
 			refresh: true
 		})
 		.subscribe(response => {
-			console.log(response); // will print "value" from fallback and refresh cache
+			console.log(response); // will refresh cache and print "value" from source
 		});
-		
-		cacheDriver.get({
-			namespace,
-			id: 'someId'
-		}, fallback, {
-			ttr: 0
-		})
-		.subscribe(response => {
-			console.log(response); // will print "value" from cache and refresh cache in background
-		});
-
+	
 		// IF EXPIRED
-
 		cacheDriver.get({
 			namespace,
 			id: 'someId'
-		}, fallback)
+		}, source)
 		.subscribe(response => {
-			console.log(response); // will print "value" from cache, and run fallback in background to feed cache to the next request gets the fresh result
+			console.log(response); // will refresh and print "value" from source
 		});
 
-		// FORCE CACHE REFRESH AFTER NEXT REQUEST ALL IDS WHICH CONTAIN "id-"
+		// FORCE CACHE REFRESH AFTER NEXT REQUEST
 		cacheDriver.markToRefresh({
 			namespace,
-			ids: ['id-']
+			id: 'id'
 		})
 		.subscribe(response => {
 			console.log(response);
 		});
 
-		// UNSET id MANUALLY
+		// UNSET MANUALLY
 		cacheDriver.del({
 			namespace,
 			id: 'id-1'
