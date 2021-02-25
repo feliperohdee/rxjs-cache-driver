@@ -16,6 +16,7 @@ Simple pluggable reactive cache driver powered by RxJS. Pluggable with your cust
 		const namespace = 'someNamespace';
 		const cacheDriver = new CacheDriver({
 			gzip: false, // or number in Kb
+			json: true,
 			ttr: 7200 * 1000, // default time to refresh (2 hours default)
 			set: dynamodb.insertOrReplace,
 			setFilter: args => true, // filter when cache should set

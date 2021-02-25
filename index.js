@@ -22,10 +22,11 @@ module.exports = class CacheDriver {
         }
 
         this.options = {
-            ...options,
             setFilter: () => true,
+            json: true,
             ttr: 7200 * 1000, // 2 hours optional
-            ttl: 60 * 24 * 60 * 60 * 1000 // 60 days optional
+            ttl: 60 * 24 * 60 * 60 * 1000, // 60 days optional
+            ...options
         };
     }
 
@@ -122,6 +123,10 @@ module.exports = class CacheDriver {
             })
             .pipe(
                 rxop.mergeMap(response => {
+                    if (!this.options.json) {
+                        return rx.of(response);
+                    }
+
                     if (!response) {
                         return rx.of({});
                     }
@@ -129,7 +134,10 @@ module.exports = class CacheDriver {
                     return this._gunzip(response);
                 }),
                 rxop.map(response => {
-                    if (response.value) {
+                    if (
+                        this.options.json &&
+                        response.value
+                    ) {
                         return {
                             ...response,
                             value: JSON.parse(response.value)
@@ -213,6 +221,7 @@ module.exports = class CacheDriver {
 
     _set(args, options) {
         const {
+            id,
             namespace,
             value
         } = args;
@@ -230,12 +239,20 @@ module.exports = class CacheDriver {
             return rx.empty();
         }
 
-        args = {
-            ...args,
-            value: JSON.stringify(value)
-        };
+        if (!options.json) {
+            return options.set({
+                createdAt: Date.now(),
+                id,
+                namespace,
+                ttl: Math.floor((Date.now() + options.ttl) / 1000),
+                value
+            });
+        }
 
-        return this._gzip(args)
+        return this._gzip({
+                ...args,
+                value: JSON.stringify(value)
+            })
             .pipe(
                 rxop.mergeMap(response => {
                     return options.set({

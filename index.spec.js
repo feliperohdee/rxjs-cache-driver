@@ -292,7 +292,7 @@ describe('index.js', () => {
                 });
         });
 
-        it('should return', done => {
+        it('should returns', done => {
             cacheDriver._get({
                     namespace,
                     id: 'existentId'
@@ -307,7 +307,7 @@ describe('index.js', () => {
                 }, null, done);
         });
 
-        it('should return', done => {
+        it('should returns', done => {
             cacheDriver._get({
                     namespace,
                     id: 'existentId'
@@ -323,7 +323,7 @@ describe('index.js', () => {
         });
 
         describe('no value', () => {
-            it('should return empty', done => {
+            it('should returns empty', done => {
                 cacheDriver._get({
                         namespace,
                         id: 'inexistentId'
@@ -335,7 +335,7 @@ describe('index.js', () => {
         });
 
         describe('null value', () => {
-            it('should return empty', done => {
+            it('should returns empty', done => {
                 cacheDriver._get({
                         namespace,
                         id: 'nullId'
@@ -389,6 +389,31 @@ describe('index.js', () => {
                             namespace,
                             id: 'existentId',
                             value: 'cached',
+                            createdAt: response.createdAt
+                        });
+                    }, null, done);
+            });
+        });
+
+        describe('no json', () => {
+            beforeEach(() => {
+                cacheDriver.options.json = false;
+            });
+
+            afterEach(() => {
+                cacheDriver.options.json = true;
+            });
+
+            it('should returns', done => {
+                cacheDriver._get({
+                        namespace,
+                        id: 'existentId'
+                    })
+                    .subscribe(response => {
+                        expect(response).to.deep.equal({
+                            namespace,
+                            id: 'existentId',
+                            value: '"cached"',
                             createdAt: response.createdAt
                         });
                     }, null, done);
@@ -550,7 +575,7 @@ describe('index.js', () => {
                     });
                 }, null, done);
         });
-        
+
         it('should call set with custom options', done => {
             cacheDriver._set({
                     namespace,
@@ -618,6 +643,36 @@ describe('index.js', () => {
                             namespace,
                             ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
                             value: zlib.gzipSync(JSON.stringify('fresh'))
+                        });
+                    }, null, done);
+            });
+        });
+
+        describe('no json', () => {
+            beforeEach(() => {
+                cacheDriver.options.json = false;
+            });
+
+            afterEach(() => {
+                cacheDriver.options.json = true;
+            });
+
+            it('should returns', done => {
+                const obj = {};
+
+                cacheDriver._set({
+                        namespace,
+                        id: 'id',
+                        value: obj,
+                        createdAt
+                    })
+                    .subscribe(() => {
+                        expect(cacheDriver.options.set).to.have.been.calledWith({
+                            createdAt,
+                            id: 'id',
+                            namespace,
+                            ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
+                            value: obj
                         });
                     }, null, done);
             });
