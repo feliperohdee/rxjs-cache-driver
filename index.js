@@ -123,12 +123,12 @@ module.exports = class CacheDriver {
             })
             .pipe(
                 rxop.mergeMap(response => {
-                    if (!this.options.json) {
-                        return rx.of(response);
-                    }
-
                     if (!response) {
                         return rx.of({});
+                    }
+
+                    if (!this.options.json) {
+                        return rx.of(response);
                     }
 
                     return this._gunzip(response);
