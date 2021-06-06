@@ -12,6 +12,25 @@ chai.use(sinonChai);
 const expect = chai.expect;
 const namespace = 'spec';
 const createdAt = Date.now();
+const testRx = (next, error, complete) => {
+    return response => {
+        try {
+            if (typeof next === 'function') {
+                next(response);
+            }
+            
+            if (typeof complete === 'function') {
+                complete();
+            }
+        } catch (err) {
+            if (typeof error === 'function') {
+                return error(err);
+            }
+
+            throw err;
+        }
+    };
+};
 
 describe('index.js', () => {
     let cacheDriver = new CacheDriver({
@@ -113,11 +132,9 @@ describe('index.js', () => {
     describe('get', () => {
         it('should throw if no namespace', done => {
             cacheDriver.get({}, source)
-                .subscribe(null, err => {
+                .subscribe(null, testRx(err => {
                     expect(err.message).to.equal('No namespace provided.');
-
-                    done();
-                });
+                }, null, done));
         });
 
         it('should throw if source isn\'t a function', done => {
@@ -125,11 +142,9 @@ describe('index.js', () => {
                     namespace,
                     id: 'id'
                 }, null)
-                .subscribe(null, err => {
+                .subscribe(null, testRx(err => {
                     expect(err.message).to.equal('Source must be a function which returns an Observable.');
-
-                    done();
-                });
+                }, null, done));
         });
 
         it('should run source and set cache if no cached value', done => {
@@ -137,7 +152,7 @@ describe('index.js', () => {
                     namespace,
                     id: 'inexistentId'
                 }, source)
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(response).to.equal('fresh');
                     expect(source).to.have.been.called;
                     expect(cacheDriver.options.set).to.have.been.calledWith({
@@ -147,7 +162,7 @@ describe('index.js', () => {
                         ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
                         value: JSON.stringify('fresh')
                     });
-                }, null, done);
+                }, null, done));
         });
 
         it('should run source and not set cache if setFilter returns false', done => {
@@ -159,11 +174,11 @@ describe('index.js', () => {
                         return response !== 'fresh';
                     }
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(response).to.equal('fresh');
                     expect(source).to.have.been.called;
                     expect(cacheDriver.options.set).to.not.have.been.called;
-                }, null, done);
+                }, null, done));
         });
 
         it('should run source and set cache with custom ttl', done => {
@@ -173,7 +188,7 @@ describe('index.js', () => {
                 }, source, {
                     ttl: 1
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(response).to.equal('fresh');
                     expect(source).to.have.been.called;
                     expect(cacheDriver.options.set).to.have.been.calledWith({
@@ -183,7 +198,7 @@ describe('index.js', () => {
                         ttl: Math.floor((createdAt + 1) / 1000),
                         value: JSON.stringify('fresh')
                     });
-                }, null, done);
+                }, null, done));
         });
 
         describe('no expired', () => {
@@ -192,9 +207,9 @@ describe('index.js', () => {
                         namespace,
                         id: 'existentId'
                     }, source)
-                    .subscribe(response => {
+                    .subscribe(testRx(response => {
                         expect(response).to.equal('cached');
-                    }, null, done);
+                    }, null, done));
             });
 
             describe('refresh', () => {
@@ -205,7 +220,7 @@ describe('index.js', () => {
                         }, source, {
                             refresh: true
                         })
-                        .subscribe(response => {
+                        .subscribe(testRx(response => {
                             expect(response).to.equal('fresh');
                             expect(source).to.have.been.called;
                             expect(cacheDriver.options.set).to.have.been.calledWith({
@@ -215,7 +230,7 @@ describe('index.js', () => {
                                 ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
                                 value: JSON.stringify('fresh')
                             });
-                        }, null, done);
+                        }, null, done));
                 });
             });
         });
@@ -228,7 +243,7 @@ describe('index.js', () => {
                     }, source, {
                         ttr: 0
                     })
-                    .subscribe(response => {
+                    .subscribe(testRx(response => {
                         expect(response).to.equal('fresh');
                         expect(source).to.have.been.called;
                         expect(cacheDriver.options.set).to.have.been.calledWith({
@@ -238,7 +253,7 @@ describe('index.js', () => {
                             ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
                             value: JSON.stringify('fresh')
                         });
-                    }, null, done);
+                    }, null, done));
             });
         });
 
@@ -252,10 +267,9 @@ describe('index.js', () => {
                         namespace,
                         id: 'id'
                     }, source)
-                    .subscribe(null, err => {
+                    .subscribe(null, testRx(err => {
                         expect(err).to.equal('ops...');
-                        done();
-                    });
+                    }, null, done));
             });
         });
 
@@ -274,10 +288,9 @@ describe('index.js', () => {
                         namespace,
                         id: 'existentId'
                     }, source)
-                    .subscribe(null, err => {
+                    .subscribe(null, testRx(err => {
                         expect(err.message).to.equal('non catched error');
-                        done();
-                    });
+                    }, null, done));
             });
         });
     });
@@ -285,11 +298,9 @@ describe('index.js', () => {
     describe('_get', () => {
         it('should throw if no namespace', done => {
             cacheDriver._get({})
-                .subscribe(null, err => {
+                .subscribe(null, testRx(err => {
                     expect(err.message).to.equal('No namespace provided.');
-
-                    done();
-                });
+                }, null, done));
         });
 
         it('should returns', done => {
@@ -297,14 +308,14 @@ describe('index.js', () => {
                     namespace,
                     id: 'existentId'
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(response).to.deep.equal({
                         namespace,
                         id: 'existentId',
                         value: 'cached',
                         createdAt: response.createdAt
                     });
-                }, null, done);
+                }, null, done));
         });
 
         it('should returns', done => {
@@ -312,14 +323,14 @@ describe('index.js', () => {
                     namespace,
                     id: 'existentId'
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(response).to.deep.equal({
                         namespace,
                         id: 'existentId',
                         value: 'cached',
                         createdAt: response.createdAt
                     });
-                }, null, done);
+                }, null, done));
         });
 
         describe('no value', () => {
@@ -328,9 +339,9 @@ describe('index.js', () => {
                         namespace,
                         id: 'inexistentId'
                     })
-                    .subscribe(response => {
+                    .subscribe(testRx(response => {
                         expect(response).to.deep.equal({});
-                    }, null, done);
+                    }, null, done));
             });
         });
 
@@ -340,9 +351,9 @@ describe('index.js', () => {
                         namespace,
                         id: 'nullId'
                     })
-                    .subscribe(response => {
+                    .subscribe(testRx(response => {
                         expect(response).to.deep.equal({});
-                    }, null, done);
+                    }, null, done));
             });
         });
 
@@ -356,10 +367,9 @@ describe('index.js', () => {
                         namespace,
                         id: 'id'
                     })
-                    .subscribe(null, err => {
+                    .subscribe(null, testRx(err => {
                         expect(err).to.equal('ops...');
-                        done();
-                    });
+                    }, null, done));
             });
         });
 
@@ -384,14 +394,14 @@ describe('index.js', () => {
                         namespace,
                         id: 'existentId'
                     })
-                    .subscribe(response => {
+                    .subscribe(testRx(response => {
                         expect(response).to.deep.equal({
                             namespace,
                             id: 'existentId',
                             value: 'cached',
                             createdAt: response.createdAt
                         });
-                    }, null, done);
+                    }, null, done));
             });
         });
 
@@ -409,14 +419,14 @@ describe('index.js', () => {
                         namespace,
                         id: 'existentId'
                     })
-                    .subscribe(response => {
+                    .subscribe(testRx(response => {
                         expect(response).to.deep.equal({
                             namespace,
                             id: 'existentId',
                             value: '"cached"',
                             createdAt: response.createdAt
                         });
-                    }, null, done);
+                    }, null, done));
             });
         });
     });
@@ -428,10 +438,9 @@ describe('index.js', () => {
                         a: 1
                     }
                 })
-                .subscribe(null, err => {
+                .subscribe(null, testRx(err => {
                     expect(err.message).to.equal('value must be string or Buffer.');
-                    done();
-                });
+                }, null, done));
         });
 
         it('should not gzip if false', done => {
@@ -441,13 +450,13 @@ describe('index.js', () => {
                         a: 1
                     })
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(response).to.deep.equal({
                         value: JSON.stringify({
                             a: 1
                         })
                     });
-                }, null, done);
+                }, null, done));
         });
 
         it('should not gzip if wrong option type', done => {
@@ -457,13 +466,13 @@ describe('index.js', () => {
                         a: 1
                     })
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(response).to.deep.equal({
                         value: JSON.stringify({
                             a: 1
                         })
                     });
-                }, null, done);
+                }, null, done));
         });
 
         it('should not gzip if lass than threshold', done => {
@@ -473,13 +482,13 @@ describe('index.js', () => {
                         a: 1
                     })
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(response).to.deep.equal({
                         value: JSON.stringify({
                             a: 1
                         })
                     });
-                }, null, done);
+                }, null, done));
         });
 
         it('should gzip', done => {
@@ -489,13 +498,13 @@ describe('index.js', () => {
                         a: 1
                     })
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(response).to.deep.equal({
                         value: zlib.gzipSync(JSON.stringify({
                             a: 1
                         }))
                     });
-                }, null, done);
+                }, null, done));
         });
     });
 
@@ -506,13 +515,13 @@ describe('index.js', () => {
                         a: 1
                     }
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(response).to.deep.equal({
                         value: {
                             a: 1
                         }
                     });
-                }, null, done);
+                }, null, done));
         });
 
         it('should not unzip other buffer', done => {
@@ -523,11 +532,11 @@ describe('index.js', () => {
             cacheDriver._gunzip({
                     value: buffer
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(response).to.deep.equal({
                         value: buffer
                     });
-                }, null, done);
+                }, null, done));
         });
 
         it('should unzip', done => {
@@ -538,24 +547,22 @@ describe('index.js', () => {
             cacheDriver._gunzip({
                     value: zipped
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(response).to.deep.equal({
                         value: JSON.stringify({
                             a: 1
                         })
                     });
-                }, null, done);
+                }, null, done));
         });
     });
 
     describe('_set', () => {
         it('should throw if no namespace', done => {
             cacheDriver._set({})
-                .subscribe(null, err => {
+                .subscribe(null, testRx(err => {
                     expect(err.message).to.equal('No namespace provided.');
-
-                    done();
-                });
+                }, null, done));
         });
 
         it('should call set', done => {
@@ -565,7 +572,7 @@ describe('index.js', () => {
                     value: 'fresh',
                     createdAt
                 })
-                .subscribe(() => {
+                .subscribe(testRx(() => {
                     expect(cacheDriver.options.set).to.have.been.calledWith({
                         createdAt,
                         id: 'id',
@@ -573,7 +580,7 @@ describe('index.js', () => {
                         ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
                         value: JSON.stringify('fresh')
                     });
-                }, null, done);
+                }, null, done));
         });
 
         it('should call set with custom options', done => {
@@ -585,7 +592,7 @@ describe('index.js', () => {
                 }, {
                     ttl: 1
                 })
-                .subscribe(() => {
+                .subscribe(testRx(() => {
                     expect(cacheDriver.options.set).to.have.been.calledWith({
                         createdAt,
                         id: 'id',
@@ -593,7 +600,7 @@ describe('index.js', () => {
                         ttl: Math.floor((createdAt + 1) / 1000),
                         value: JSON.stringify('fresh')
                     });
-                }, null, done);
+                }, null, done));
         });
 
         it('should not call set if no value', done => {
@@ -601,9 +608,10 @@ describe('index.js', () => {
                     namespace,
                     id: 'id'
                 })
-                .subscribe(() => {
+                .subscribe(null, null, testRx(() => {
                     expect(cacheDriver.options.set).not.to.have.been.called;
-                }, null, done);
+                    done();
+                }));
         });
 
         describe('on error', () => {
@@ -617,10 +625,9 @@ describe('index.js', () => {
                         id: 'id',
                         value: 'value'
                     })
-                    .subscribe(null, err => {
+                    .subscribe(null, testRx(err => {
                         expect(err).to.equal('ops...');
-                        done();
-                    });
+                    }, null, done));
             });
         });
 
@@ -636,7 +643,7 @@ describe('index.js', () => {
                         value: 'fresh',
                         createdAt
                     })
-                    .subscribe(response => {
+                    .subscribe(testRx(response => {
                         expect(cacheDriver.options.set).to.have.been.calledWith({
                             createdAt,
                             id: 'id',
@@ -644,7 +651,7 @@ describe('index.js', () => {
                             ttl: Math.floor((createdAt + cacheDriver.options.ttl) / 1000),
                             value: zlib.gzipSync(JSON.stringify('fresh'))
                         });
-                    }, null, done);
+                    }, null, done));
             });
         });
 
@@ -682,11 +689,9 @@ describe('index.js', () => {
     describe('del', () => {
         it('should throw if no namespace', done => {
             cacheDriver.del({})
-                .subscribe(null, err => {
+                .subscribe(null, testRx(err => {
                     expect(err.message).to.equal('No namespace provided.');
-
-                    done();
-                });
+                }, null, done));
         });
 
         it('should call del', done => {
@@ -706,11 +711,9 @@ describe('index.js', () => {
     describe('markToRefresh', () => {
         it('should throw if no namespace', done => {
             cacheDriver.markToRefresh({})
-                .subscribe(null, err => {
+                .subscribe(null, testRx(err => {
                     expect(err.message).to.equal('No namespace provided.');
-
-                    done();
-                });
+                }, null, done));
         });
 
         it('should call set', done => {
@@ -718,36 +721,34 @@ describe('index.js', () => {
                     namespace,
                     id: 'existentId'
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(cacheDriver.options.set).to.have.been.calledWith({
                         namespace,
                         id: 'existentId',
                         value: JSON.stringify('cached'),
                         createdAt: 0
                     });
-                }, null, done);
+                }, null, done));
         });
     });
 
     describe('clear', () => {
         it('should throw if no namespace', done => {
             cacheDriver.clear({})
-                .subscribe(null, err => {
+                .subscribe(null, testRx(err => {
                     expect(err.message).to.equal('No namespace provided.');
-
-                    done();
-                });
+                }, null, done));
         });
 
         it('should call clear', done => {
             cacheDriver.clear({
                     namespace
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(cacheDriver.options.clear).to.have.been.calledWith({
                         namespace
                     });
-                }, null, done);
+                }, null, done));
         });
 
         it('should call clear with id', done => {
@@ -755,12 +756,12 @@ describe('index.js', () => {
                     id: 'id',
                     namespace
                 })
-                .subscribe(response => {
+                .subscribe(testRx(response => {
                     expect(cacheDriver.options.clear).to.have.been.calledWith({
                         id: 'id',
                         namespace
                     });
-                }, null, done);
+                }, null, done));
         });
     });
 });

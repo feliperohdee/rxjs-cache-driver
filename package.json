@@ -6,20 +6,20 @@
     "scripts": {
         "coverage": "rm -rf coverage; NODE_ENV=test nyc ./node_modules/.bin/_mocha *.spec.js --recursive --timeout 5000; rm -rf .nyc_output",
         "eslint": "eslint . --ext .js --config node_modules/eslint-config/index.js",
-        "test": "NODE_ENV=test ./node_modules/.bin/_mocha *.spec.js --recursive --watch --timeout 5000"
+        "test": "NODE_ENV=test ./node_modules/.bin/_mocha *.spec.js --recursive --timeout 5000"
     },
     "author": "Felipe Rohde",
     "license": "ISC",
     "dependencies": {
-        "rxjs": "^6.6.3"
+        "rxjs": "^7.1.0"
     },
     "devDependencies": {
-        "chai": "^4.3.0",
-        "eslint": "^7.20.0",
-        "mocha": "^8.3.0",
+        "chai": "^4.3.4",
+        "eslint": "^7.28.0",
+        "mocha": "^8.4.0",
         "nyc": "^15.1.0",
-        "sinon": "^9.2.4",
-        "sinon-chai": "^3.5.0"
+        "sinon": "^11.1.1",
+        "sinon-chai": "^3.7.0"
     },
     "nyc": {
         "all": true,
